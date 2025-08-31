@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { AuthService } from "@/lib/auth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -20,28 +21,30 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Role-based login logic
-      if (email === "rishikmaduri@gmail.com" && password === "Rishik@123") {
-        toast({
-          title: "Welcome Admin!",
-          description: "Redirecting to admin dashboard...",
-        });
-        navigate("/admin");
-      } else {
-        // For demo purposes, any other valid email/password combo goes to student dashboard
-        if (email && password && email.includes("@")) {
+      const result = AuthService.login({ email, password });
+      
+      if (result) {
+        const { user } = result;
+        
+        if (user.role === 'admin') {
+          toast({
+            title: "Welcome Admin!",
+            description: "Redirecting to admin dashboard...",
+          });
+          navigate("/admin");
+        } else {
           toast({
             title: "Login Successful!",
             description: "Welcome to your student dashboard.",
           });
           navigate("/student");
-        } else {
-          toast({
-            title: "Login Failed",
-            description: "Please check your credentials and try again.",
-            variant: "destructive",
-          });
         }
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Please check your credentials and try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({

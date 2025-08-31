@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,68 +23,64 @@ import {
   Users,
   Target
 } from "lucide-react";
+import { AuthService } from "@/lib/auth";
+import { StudentDataService } from "@/lib/studentData";
+import { getCourseData, getCertificateData } from "@/lib/mockData";
 
 const StudentDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const [enrolledCourses] = useState([
-    {
-      id: 1,
-      title: "Full Stack Development",
-      progress: 75,
-      totalLessons: 24,
-      completedLessons: 18,
-      nextLive: "Tomorrow 3:00 PM",
-      rank: 5,
-      totalStudents: 300,
-      certificate: null
-    },
-    {
-      id: 2,
-      title: "Power BI",
-      progress: 90,
-      totalLessons: 16,
-      completedLessons: 14,
-      nextLive: "Friday 2:00 PM",
-      rank: 2,
-      totalStudents: 150,
-      certificate: "Silver"
-    }
-  ]);
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [userCertificates, setUserCertificates] = useState<any[]>([]);
 
-  const [notifications] = useState([
-    {
-      id: 1,
-      title: "New assignment uploaded",
-      course: "Full Stack Development",
-      time: "2 hours ago",
-      read: false
-    },
-    {
-      id: 2,
-      title: "Live session reminder",
-      course: "Power BI",
-      time: "1 day ago",
-      read: false
-    },
-    {
-      id: 3,
-      title: "Certificate ready for download",
-      course: "Power BI",
-      time: "3 days ago",
-      read: true
+  useEffect(() => {
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser) {
+      navigate("/login");
+      return;
     }
-  ]);
 
-  const [recentActivities] = useState([
-    { id: 1, activity: "Completed MCQ Quiz - React Hooks", score: "8/10", time: "2 hours ago" },
-    { id: 2, activity: "Submitted Assignment - Database Design", score: "Pending", time: "1 day ago" },
-    { id: 3, activity: "Attended Live Session - API Integration", score: "Present", time: "2 days ago" },
-    { id: 4, activity: "Downloaded Notes - JavaScript Fundamentals", score: "Completed", time: "3 days ago" }
-  ]);
+    const userId = currentUser.user.id;
+    
+    // Load student data
+    const studentProgress = StudentDataService.getStudentProgress(userId);
+    const allCourses = getCourseData();
+    const studentNotifications = StudentDataService.getStudentNotifications(userId);
+    const studentActivities = StudentDataService.getStudentActivities(userId);
+    const allCertificates = getCertificateData();
+    
+    // Filter enrolled courses based on progress data
+    const enrolled = allCourses.filter(course => 
+      studentProgress.some(p => p.courseId === course.id)
+    ).map(course => {
+      const progress = studentProgress.find(p => p.courseId === course.id);
+      return {
+        ...course,
+        progress: progress?.progress || 0,
+        completedLessons: progress?.completedLessons || 0,
+        rank: progress?.rank || 1,
+        totalStudents: course.students,
+        certificate: progress?.certificate || null,
+        nextLive: "Tomorrow 3:00 PM" // Mock data
+      };
+    });
+
+    setEnrolledCourses(enrolled);
+    setAvailableCourses(allCourses.filter(course => 
+      !enrolled.some(e => e.id === course.id)
+    ));
+    setNotifications(studentNotifications);
+    setRecentActivities(studentActivities);
+    setUserCertificates(allCertificates.filter(cert => cert.userId === userId));
+  }, [navigate]);
+
 
   const handleLogout = () => {
+    AuthService.logout();
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
@@ -92,10 +88,31 @@ const StudentDashboard = () => {
     navigate("/");
   };
 
-  const enrollInCourse = () => {
+  const enrollInCourse = (courseId: string) => {
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser) return;
+
+    StudentDataService.enrollInCourse(currentUser.user.id, courseId);
+    
+    // Refresh data
+    window.location.reload();
+    
     toast({
-      title: "Enrollment Initiated",
-      description: "Please complete payment to access the course.",
+      title: "Enrollment Successful!",
+      description: "You have been enrolled in the course.",
+    });
+  };
+
+  const markAllNotificationsRead = () => {
+    notifications.forEach(notification => {
+      if (!notification.read) {
+        StudentDataService.markNotificationRead(notification.id);
+      }
+    });
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    toast({
+      title: "Notifications Marked as Read",
+      description: "All notifications have been marked as read.",
     });
   };
 
@@ -278,7 +295,7 @@ const StudentDashboard = () => {
           <TabsContent value="notifications" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Notifications</h2>
-              <Button variant="outline" size="sm">Mark All Read</Button>
+              <Button variant="outline" size="sm" onClick={markAllNotificationsRead}>Mark All Read</Button>
             </div>
 
             <div className="space-y-4">
@@ -418,24 +435,19 @@ const StudentDashboard = () => {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { title: "Frontend Development", price: "₹5,999", duration: "10 weeks", icon: "🎨" },
-                { title: "Backend Development", price: "₹5,999", duration: "10 weeks", icon: "⚙️" },
-                { title: "Database Management", price: "₹4,499", duration: "6 weeks", icon: "🗄️" },
-                { title: "Flutter Development", price: "₹6,499", duration: "10 weeks", icon: "📱" }
-              ].map((course, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="text-3xl mb-2">{course.icon}</div>
-                    <CardTitle>{course.title}</CardTitle>
-                    <CardDescription>{course.duration} • {course.price}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={enrollInCourse} className="w-full">
-                      Enroll Now
-                    </Button>
-                  </CardContent>
-                </Card>
+              {availableCourses.map((course, index) => (
+                 <Card key={index} className="hover:shadow-lg transition-shadow">
+                   <CardHeader>
+                     <div className="text-3xl mb-2">{course.icon}</div>
+                     <CardTitle>{course.title}</CardTitle>
+                     <CardDescription>{course.duration} • ₹{course.price}</CardDescription>
+                   </CardHeader>
+                   <CardContent>
+                     <Button onClick={() => enrollInCourse(course.id)} className="w-full">
+                       Enroll Now
+                     </Button>
+                   </CardContent>
+                 </Card>
               ))}
             </div>
           </TabsContent>

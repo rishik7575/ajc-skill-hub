@@ -13,6 +13,7 @@ import Faculty from "./pages/Faculty";
 import Contact from "./pages/Contact";
 import CourseDetails from "./pages/CourseDetails";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -26,8 +27,16 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/student" element={<StudentDashboard />} />
+          <Route path="/admin" element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/student" element={
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          } />
           <Route path="/verify-certificate" element={<VerifyCertificate />} />
           <Route path="/faculty" element={<Faculty />} />
           <Route path="/contact" element={<Contact />} />

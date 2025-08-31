@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,26 +20,15 @@ import {
   TrendingUp,
   FileText
 } from "lucide-react";
+import { AuthService } from "@/lib/auth";
+import { getCourseData, saveCourseData, getFacultyData, saveFacultyData, Course, FacultyMember } from "@/lib/mockData";
 
 const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const [courses, setCourses] = useState([
-    { id: 1, title: "Power BI", students: 150, price: 4999, status: "Active" },
-    { id: 2, title: "Full Stack Development", students: 300, price: 7999, status: "Active" },
-    { id: 3, title: "Frontend Development", students: 200, price: 5999, status: "Active" },
-    { id: 4, title: "Backend Development", students: 180, price: 5999, status: "Active" },
-    { id: 5, title: "Database Management", students: 120, price: 4499, status: "Active" },
-    { id: 6, title: "Flutter Development", students: 100, price: 6499, status: "Active" }
-  ]);
-
-  const [faculty, setFaculty] = useState([
-    { id: 1, name: "Dr. Amit Sharma", course: "Power BI", email: "amit@ajc.com", status: "Active" },
-    { id: 2, name: "Priya Singh", course: "Full Stack Development", email: "priya@ajc.com", status: "Active" },
-    { id: 3, name: "Rohit Kumar", course: "Frontend Development", email: "rohit@ajc.com", status: "Active" },
-    { id: 4, name: "Sneha Patel", course: "Backend Development", email: "sneha@ajc.com", status: "Active" }
-  ]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [faculty, setFaculty] = useState<FacultyMember[]>([]);
 
   const [students] = useState([
     { id: 1, name: "Rahul Verma", email: "rahul@example.com", course: "Full Stack Development", progress: 75, certificate: "Pending" },
@@ -51,7 +40,14 @@ const AdminDashboard = () => {
   const [newCourse, setNewCourse] = useState({ title: "", price: "", description: "" });
   const [newFaculty, setNewFaculty] = useState({ name: "", email: "", course: "" });
 
+  useEffect(() => {
+    // Load data from localStorage
+    setCourses(getCourseData());
+    setFaculty(getFacultyData());
+  }, []);
+
   const handleLogout = () => {
+    AuthService.logout();
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
@@ -62,14 +58,23 @@ const AdminDashboard = () => {
   const handleAddCourse = (e: React.FormEvent) => {
     e.preventDefault();
     if (newCourse.title && newCourse.price) {
-      const course = {
-        id: courses.length + 1,
+      const course: Course = {
+        id: `course_${Date.now()}`,
         title: newCourse.title,
-        students: 0,
+        description: newCourse.description || "New course description",
         price: parseInt(newCourse.price),
-        status: "Active"
+        duration: "8 weeks",
+        students: 0,
+        rating: 4.5,
+        status: "Active",
+        faculty: "Unassigned",
+        icon: "📚",
+        totalLessons: 10,
+        syllabus: ["Introduction", "Basics", "Advanced Topics"]
       };
-      setCourses([...courses, course]);
+      const updatedCourses = [...courses, course];
+      setCourses(updatedCourses);
+      saveCourseData(updatedCourses);
       setNewCourse({ title: "", price: "", description: "" });
       toast({
         title: "Course Added",
@@ -81,14 +86,19 @@ const AdminDashboard = () => {
   const handleAddFaculty = (e: React.FormEvent) => {
     e.preventDefault();
     if (newFaculty.name && newFaculty.email && newFaculty.course) {
-      const facultyMember = {
-        id: faculty.length + 1,
+      const facultyMember: FacultyMember = {
+        id: `faculty_${Date.now()}`,
         name: newFaculty.name,
         email: newFaculty.email,
         course: newFaculty.course,
-        status: "Active"
+        status: "Active",
+        expertise: ["Teaching", "Industry Experience"],
+        experience: "3+ years",
+        bio: "Experienced instructor with industry expertise."
       };
-      setFaculty([...faculty, facultyMember]);
+      const updatedFaculty = [...faculty, facultyMember];
+      setFaculty(updatedFaculty);
+      saveFacultyData(updatedFaculty);
       setNewFaculty({ name: "", email: "", course: "" });
       toast({
         title: "Faculty Added",
@@ -97,16 +107,20 @@ const AdminDashboard = () => {
     }
   };
 
-  const deleteCourse = (id: number) => {
-    setCourses(courses.filter(course => course.id !== id));
+  const deleteCourse = (id: string) => {
+    const updatedCourses = courses.filter(course => course.id !== id);
+    setCourses(updatedCourses);
+    saveCourseData(updatedCourses);
     toast({
       title: "Course Deleted",
       description: "Course has been removed successfully.",
     });
   };
 
-  const deleteFaculty = (id: number) => {
-    setFaculty(faculty.filter(member => member.id !== id));
+  const deleteFaculty = (id: string) => {
+    const updatedFaculty = faculty.filter(member => member.id !== id);
+    setFaculty(updatedFaculty);
+    saveFacultyData(updatedFaculty);
     toast({
       title: "Faculty Removed",
       description: "Faculty member has been removed successfully.",

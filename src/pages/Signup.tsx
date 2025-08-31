@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { AuthService } from "@/lib/auth";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -51,12 +52,25 @@ const Signup = () => {
         return;
       }
 
-      // For demo purposes, simulate successful registration
-      toast({
-        title: "Account Created!",
-        description: "Your account has been created successfully. Please sign in.",
+      const result = AuthService.signup({ 
+        name: formData.name, 
+        email: formData.email, 
+        password: formData.password 
       });
-      navigate("/login");
+      
+      if (result) {
+        toast({
+          title: "Account Created!",
+          description: "Welcome to AJC Internship Platform.",
+        });
+        navigate("/student");
+      } else {
+        toast({
+          title: "Signup Failed",
+          description: "An account with this email already exists.",
+          variant: "destructive",
+        });
+      }
 
     } catch (error) {
       toast({
