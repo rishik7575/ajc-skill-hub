@@ -6,13 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  BookOpen, 
-  Play, 
-  Download, 
-  CheckCircle, 
-  Clock, 
-  Trophy, 
+import {
+  BookOpen,
+  Play,
+  Download,
+  CheckCircle,
+  Clock,
+  Trophy,
   Bell,
   LogOut,
   Star,
@@ -23,6 +23,10 @@ import {
   Users,
   Target
 } from "lucide-react";
+import { ProgressIndicator, CircularProgress } from "@/components/ProgressIndicator";
+import { NotificationSystem, useNotifications } from "@/components/NotificationSystem";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthService } from "@/lib/auth";
 import { StudentDataService } from "@/lib/studentData";
 import { getCourseData, getCertificateData } from "@/lib/mockData";
@@ -30,7 +34,8 @@ import { getCourseData, getCertificateData } from "@/lib/mockData";
 const StudentDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+  const { notifications: systemNotifications, markAsRead, markAllAsRead, dismiss, addNotification } = useNotifications();
+
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
@@ -44,38 +49,8 @@ const StudentDashboard = () => {
       return;
     }
 
-    const userId = currentUser.user.id;
-    
-    // Load student data
-    const studentProgress = StudentDataService.getStudentProgress(userId);
-    const allCourses = getCourseData();
-    const studentNotifications = StudentDataService.getStudentNotifications(userId);
-    const studentActivities = StudentDataService.getStudentActivities(userId);
-    const allCertificates = getCertificateData();
-    
-    // Filter enrolled courses based on progress data
-    const enrolled = allCourses.filter(course => 
-      studentProgress.some(p => p.courseId === course.id)
-    ).map(course => {
-      const progress = studentProgress.find(p => p.courseId === course.id);
-      return {
-        ...course,
-        progress: progress?.progress || 0,
-        completedLessons: progress?.completedLessons || 0,
-        rank: progress?.rank || 1,
-        totalStudents: course.students,
-        certificate: progress?.certificate || null,
-        nextLive: "Tomorrow 3:00 PM" // Mock data
-      };
-    });
-
-    setEnrolledCourses(enrolled);
-    setAvailableCourses(allCourses.filter(course => 
-      !enrolled.some(e => e.id === course.id)
-    ));
-    setNotifications(studentNotifications);
-    setRecentActivities(studentActivities);
-    setUserCertificates(allCertificates.filter(cert => cert.userId === userId));
+    // Load initial data
+    refreshDashboardData();
   }, [navigate]);
 
 
@@ -88,19 +63,75 @@ const StudentDashboard = () => {
     navigate("/");
   };
 
-  const enrollInCourse = (courseId: string) => {
+  const enrollInCourse = async (courseId: string) => {
     const currentUser = AuthService.getCurrentUser();
     if (!currentUser) return;
 
-    StudentDataService.enrollInCourse(currentUser.user.id, courseId);
-    
-    // Refresh data
-    window.location.reload();
-    
-    toast({
-      title: "Enrollment Successful!",
-      description: "You have been enrolled in the course.",
-    });
+    try {
+      // Enroll in course
+      StudentDataService.enrollInCourse(currentUser.user.id, courseId);
+
+      // Refresh data without page reload
+      await refreshDashboardData();
+
+      toast({
+        title: "Enrollment Successful!",
+        description: "You have been enrolled in the course.",
+      });
+    } catch (error) {
+      toast({
+        title: "Enrollment Failed",
+        description: "There was an error enrolling in the course. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const refreshDashboardData = async () => {
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser) return;
+
+    const userId = currentUser.user.id;
+
+    try {
+      // Load student data
+      const studentProgress = StudentDataService.getStudentProgress(userId);
+      const allCourses = getCourseData();
+      const studentNotifications = StudentDataService.getStudentNotifications(userId);
+      const studentActivities = StudentDataService.getStudentActivities(userId);
+      const allCertificates = getCertificateData();
+
+      // Filter enrolled courses based on progress data
+      const enrolled = allCourses.filter(course =>
+        studentProgress.some(p => p.courseId === course.id)
+      ).map(course => {
+        const progress = studentProgress.find(p => p.courseId === course.id);
+        return {
+          ...course,
+          progress: progress?.progress || 0,
+          completedLessons: progress?.completedLessons || 0,
+          rank: progress?.rank || 1,
+          totalStudents: course.students,
+          certificate: progress?.certificate || null,
+          nextLive: "Tomorrow 3:00 PM" // Mock data
+        };
+      });
+
+      setEnrolledCourses(enrolled);
+      setAvailableCourses(allCourses.filter(course =>
+        !enrolled.some(e => e.id === course.id)
+      ));
+      setNotifications(studentNotifications);
+      setRecentActivities(studentActivities);
+      setUserCertificates(allCertificates.filter(cert => cert.userId === userId));
+    } catch (error) {
+      console.error('Error refreshing dashboard data:', error);
+      toast({
+        title: "Data Refresh Failed",
+        description: "There was an error loading your data. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
   };
 
   const markAllNotificationsRead = () => {
@@ -119,13 +150,13 @@ const StudentDashboard = () => {
   const unreadNotifications = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
       {/* Header */}
-      <header className="bg-card border-b sticky top-0 z-50">
+      <header className="bg-card/80 backdrop-blur-md border-b sticky top-0 z-50 shadow-soft">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center shadow-glow">
                 <span className="text-white font-bold text-lg">AJC</span>
               </div>
               <div>
@@ -134,18 +165,17 @@ const StudentDashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Button variant="outline" size="sm">
-                  <Bell className="h-4 w-4" />
-                  {unreadNotifications > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
-                      {unreadNotifications}
-                    </Badge>
-                  )}
-                </Button>
-              </div>
+              <NotificationSystem
+                notifications={systemNotifications}
+                onMarkAsRead={markAsRead}
+                onMarkAllAsRead={markAllAsRead}
+                onDismiss={dismiss}
+              />
+              <ThemeToggle />
               <Link to="/">
-                <Button variant="outline">View Website</Button>
+                <Button variant="outline" className="hover:bg-primary/5 hover:border-primary/30 transition-all duration-300">
+                  View Website
+                </Button>
               </Link>
               <Button onClick={handleLogout} variant="outline">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -157,26 +187,38 @@ const StudentDashboard = () => {
       </header>
 
       <div className="container mx-auto px-6 py-8">
+        {/* Breadcrumbs */}
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: '/', icon: <BookOpen className="h-3 w-3" /> },
+            { label: 'Student Dashboard' }
+          ]}
+          className="mb-6"
+        />
         {/* Quick Stats */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="card-modern card-hover animate-fade-in">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Enrolled Courses</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
+                <BookOpen className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{enrolledCourses.length}</div>
+              <div className="text-2xl font-bold text-primary">{enrolledCourses.length}</div>
               <p className="text-xs text-muted-foreground">Active enrollments</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="card-modern card-hover animate-fade-in" style={{animationDelay: '0.1s'}}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {Math.round(enrolledCourses.reduce((sum, course) => sum + course.progress, 0) / enrolledCourses.length)}%
+              <div className="text-2xl font-bold text-green-600">
+                {enrolledCourses.length > 0 ? Math.round(enrolledCourses.reduce((sum, course) => sum + course.progress, 0) / enrolledCourses.length) : 0}%
               </div>
               <p className="text-xs text-muted-foreground">Average completion</p>
             </CardContent>

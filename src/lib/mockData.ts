@@ -75,6 +75,32 @@ export interface Activity {
   courseId: string;
 }
 
+export interface CourseFeedback {
+  id: string;
+  userId: string;
+  courseId: string;
+  studentName: string;
+  rating: number; // 1-5 stars
+  review: string;
+  createdAt: string;
+  isApproved: boolean;
+  adminResponse?: string;
+  adminResponseDate?: string;
+}
+
+export interface CourseRating {
+  courseId: string;
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
+
 // Mock data
 export const mockCourses: Course[] = [
   {
@@ -237,6 +263,80 @@ export const mockCertificates: Certificate[] = [
   }
 ];
 
+export const mockCourseFeedback: CourseFeedback[] = [
+  {
+    id: 'feedback1',
+    userId: 'student1',
+    courseId: 'powerbi',
+    studentName: 'Demo Student',
+    rating: 5,
+    review: 'Excellent course! The instructor explained complex concepts very clearly. The hands-on projects were particularly helpful.',
+    createdAt: '2024-03-10T10:30:00Z',
+    isApproved: true,
+    adminResponse: 'Thank you for your positive feedback! We\'re glad you found the course helpful.',
+    adminResponseDate: '2024-03-11T09:00:00Z'
+  },
+  {
+    id: 'feedback2',
+    userId: 'student2',
+    courseId: 'fullstack',
+    studentName: 'Sarah Johnson',
+    rating: 4,
+    review: 'Great comprehensive course covering both frontend and backend. Would love more advanced topics in future modules.',
+    createdAt: '2024-03-08T14:20:00Z',
+    isApproved: true
+  },
+  {
+    id: 'feedback3',
+    userId: 'student3',
+    courseId: 'powerbi',
+    studentName: 'Mike Chen',
+    rating: 5,
+    review: 'Outstanding course content and delivery. The real-world examples made it easy to understand.',
+    createdAt: '2024-03-05T16:45:00Z',
+    isApproved: true
+  }
+];
+
+export const mockCourseRatings: CourseRating[] = [
+  {
+    courseId: 'powerbi',
+    averageRating: 4.8,
+    totalReviews: 15,
+    ratingDistribution: { 1: 0, 2: 0, 3: 1, 4: 4, 5: 10 }
+  },
+  {
+    courseId: 'fullstack',
+    averageRating: 4.9,
+    totalReviews: 25,
+    ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 5, 5: 20 }
+  },
+  {
+    courseId: 'frontend',
+    averageRating: 4.7,
+    totalReviews: 18,
+    ratingDistribution: { 1: 0, 2: 0, 3: 2, 4: 6, 5: 10 }
+  },
+  {
+    courseId: 'backend',
+    averageRating: 4.8,
+    totalReviews: 12,
+    ratingDistribution: { 1: 0, 2: 0, 3: 1, 4: 3, 5: 8 }
+  },
+  {
+    courseId: 'database',
+    averageRating: 4.6,
+    totalReviews: 8,
+    ratingDistribution: { 1: 0, 2: 0, 3: 1, 4: 4, 5: 3 }
+  },
+  {
+    courseId: 'flutter',
+    averageRating: 4.7,
+    totalReviews: 10,
+    ratingDistribution: { 1: 0, 2: 0, 3: 1, 4: 3, 5: 6 }
+  }
+];
+
 // Local storage keys
 export const STORAGE_KEYS = {
   USERS: 'ajc_users',
@@ -246,7 +346,9 @@ export const STORAGE_KEYS = {
   STUDENT_PROGRESS: 'ajc_student_progress',
   NOTIFICATIONS: 'ajc_notifications',
   ACTIVITIES: 'ajc_activities',
-  CURRENT_USER: 'ajc_current_user'
+  CURRENT_USER: 'ajc_current_user',
+  COURSE_FEEDBACK: 'ajc_course_feedback',
+  COURSE_RATINGS: 'ajc_course_ratings'
 };
 
 // Initialize mock data in localStorage if not exists
@@ -263,41 +365,132 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.CERTIFICATES)) {
     localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(mockCertificates));
   }
+  if (!localStorage.getItem(STORAGE_KEYS.COURSE_FEEDBACK)) {
+    localStorage.setItem(STORAGE_KEYS.COURSE_FEEDBACK, JSON.stringify(mockCourseFeedback));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.COURSE_RATINGS)) {
+    localStorage.setItem(STORAGE_KEYS.COURSE_RATINGS, JSON.stringify(mockCourseRatings));
+  }
 };
 
-// Helper functions for data operations
+// Helper functions for data operations with error handling
 export const getUserData = (): User[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.USERS);
-  return data ? JSON.parse(data) : mockUsers;
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.USERS);
+    return data ? JSON.parse(data) : mockUsers;
+  } catch (error) {
+    console.error('Error reading user data from localStorage:', error);
+    return mockUsers;
+  }
 };
 
 export const getCourseData = (): Course[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.COURSES);
-  return data ? JSON.parse(data) : mockCourses;
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.COURSES);
+    return data ? JSON.parse(data) : mockCourses;
+  } catch (error) {
+    console.error('Error reading course data from localStorage:', error);
+    return mockCourses;
+  }
 };
 
 export const getFacultyData = (): FacultyMember[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.FACULTY);
-  return data ? JSON.parse(data) : mockFaculty;
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.FACULTY);
+    return data ? JSON.parse(data) : mockFaculty;
+  } catch (error) {
+    console.error('Error reading faculty data from localStorage:', error);
+    return mockFaculty;
+  }
 };
 
 export const getCertificateData = (): Certificate[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.CERTIFICATES);
-  return data ? JSON.parse(data) : mockCertificates;
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.CERTIFICATES);
+    return data ? JSON.parse(data) : mockCertificates;
+  } catch (error) {
+    console.error('Error reading certificate data from localStorage:', error);
+    return mockCertificates;
+  }
 };
 
-export const saveUserData = (users: User[]) => {
-  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+export const saveUserData = (users: User[]): boolean => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    return true;
+  } catch (error) {
+    console.error('Error saving user data to localStorage:', error);
+    return false;
+  }
 };
 
-export const saveCourseData = (courses: Course[]) => {
-  localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+export const saveCourseData = (courses: Course[]): boolean => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+    return true;
+  } catch (error) {
+    console.error('Error saving course data to localStorage:', error);
+    return false;
+  }
 };
 
-export const saveFacultyData = (faculty: FacultyMember[]) => {
-  localStorage.setItem(STORAGE_KEYS.FACULTY, JSON.stringify(faculty));
+export const saveFacultyData = (faculty: FacultyMember[]): boolean => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.FACULTY, JSON.stringify(faculty));
+    return true;
+  } catch (error) {
+    console.error('Error saving faculty data to localStorage:', error);
+    return false;
+  }
 };
 
-export const saveCertificateData = (certificates: Certificate[]) => {
-  localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(certificates));
+export const saveCertificateData = (certificates: Certificate[]): boolean => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(certificates));
+    return true;
+  } catch (error) {
+    console.error('Error saving certificate data to localStorage:', error);
+    return false;
+  }
+};
+
+// Feedback management functions
+export const getCourseFeedback = (): CourseFeedback[] => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.COURSE_FEEDBACK);
+    return data ? JSON.parse(data) : mockCourseFeedback;
+  } catch (error) {
+    console.error('Error reading course feedback from localStorage:', error);
+    return mockCourseFeedback;
+  }
+};
+
+export const saveCourseFeedback = (feedback: CourseFeedback[]): boolean => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.COURSE_FEEDBACK, JSON.stringify(feedback));
+    return true;
+  } catch (error) {
+    console.error('Error saving course feedback to localStorage:', error);
+    return false;
+  }
+};
+
+export const getCourseRatings = (): CourseRating[] => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.COURSE_RATINGS);
+    return data ? JSON.parse(data) : mockCourseRatings;
+  } catch (error) {
+    console.error('Error reading course ratings from localStorage:', error);
+    return mockCourseRatings;
+  }
+};
+
+export const saveCourseRatings = (ratings: CourseRating[]): boolean => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.COURSE_RATINGS, JSON.stringify(ratings));
+    return true;
+  } catch (error) {
+    console.error('Error saving course ratings to localStorage:', error);
+    return false;
+  }
 };

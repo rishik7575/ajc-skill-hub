@@ -3,8 +3,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, BookOpen, Users, Award, Star, Play, Download, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
+import { StarDisplay } from "@/components/ui/star-rating";
+import { FeedbackService } from "@/lib/feedbackService";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useState, useEffect } from "react";
 
 const Landing = () => {
+  const [courseRatings, setCourseRatings] = useState<{[key: string]: any}>({});
+
+  useEffect(() => {
+    // Load course ratings
+    const loadRatings = () => {
+      const ratings: {[key: string]: any} = {};
+      courses.forEach(course => {
+        const courseId = course.title.toLowerCase().replace(/\s+/g, '').replace('bi', 'bi');
+        let id = courseId;
+        if (courseId === 'powerbi') id = 'powerbi';
+        else if (courseId === 'fullstackdevelopment') id = 'fullstack';
+        else if (courseId === 'frontenddevelopment') id = 'frontend';
+        else if (courseId === 'backenddevelopment') id = 'backend';
+        else if (courseId === 'databasemanagement') id = 'database';
+        else if (courseId === 'flutterdevelopment') id = 'flutter';
+
+        const rating = FeedbackService.getCourseRating(id);
+        if (rating) {
+          ratings[course.title] = rating;
+        }
+      });
+      setCourseRatings(ratings);
+    };
+
+    loadRatings();
+  }, []);
+
   const courses = [
     {
       title: "Power BI",
@@ -106,11 +137,12 @@ const Landing = () => {
               <Link to="/contact" className="text-foreground hover:text-primary transition-colors">Contact</Link>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <Link to="/login">
                 <Button variant="outline">Login</Button>
               </Link>
               <Link to="/signup">
-                <Button>Get Started</Button>
+                <Button className="btn-gradient">Get Started</Button>
               </Link>
             </div>
           </nav>
@@ -118,53 +150,65 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto text-center">
+      <section className="py-20 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5"></div>
+
+        {/* Floating Background Elements */}
+        <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-xl float-animation"></div>
+        <div className="absolute top-40 right-20 w-32 h-32 bg-accent/10 rounded-full blur-xl float-delayed"></div>
+        <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-primary/5 rounded-full blur-lg float-animation"></div>
+
+        <div className="container mx-auto text-center relative z-10">
           <div className="max-w-4xl mx-auto">
-            <Badge className="mb-6" variant="secondary">
+            <Badge className="mb-6 animate-fade-in bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 hover-glow" variant="secondary">
               🚀 India's Leading Internship Platform
             </Badge>
-            <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight animate-slide-up">
               Transform Your Career with{" "}
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent animate-shimmer">
                 AJC Internships
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Master in-demand skills through hands-on internships. Get industry-ready with live projects, 
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-fade-in-up leading-relaxed">
+              Master in-demand skills through hands-on internships. Get industry-ready with live projects,
               expert mentorship, and certified achievements.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-scale-in">
               <Link to="/courses">
-                <Button size="lg" className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-lg px-8 py-6">
-                  Explore Courses <ArrowRight className="ml-2 h-5 w-5" />
+                <Button size="lg" className="btn-gradient text-lg px-8 py-6 shadow-glow hover:shadow-glow-lg transition-all duration-300 hover-scale group">
+                  Explore Courses
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               </Link>
               <Link to="/verify-certificate">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                  <Award className="mr-2 h-5 w-5" />
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-lift group">
+                  <Award className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
                   Verify Certificate
                 </Button>
               </Link>
             </div>
           </div>
         </div>
+
+        {/* Floating Elements */}
+        <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-xl animate-bounce-in"></div>
+        <div className="absolute bottom-20 right-10 w-32 h-32 bg-gradient-to-br from-accent/20 to-primary/20 rounded-full blur-xl animate-bounce-in" style={{animationDelay: '0.5s'}}></div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-6 bg-card/30">
+      <section className="py-16 px-6 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 animate-fade-in">
             <h2 className="text-3xl font-bold text-foreground mb-4">Why Choose AJC Internships?</h2>
             <p className="text-muted-foreground text-lg">Complete learning experience with industry-standard practices</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className="card-modern card-hover text-center group animate-fade-in-up">
               <CardHeader>
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-glow">
                   <Play className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle>Live & Recorded Sessions</CardTitle>
+                <CardTitle className="group-hover:text-primary transition-colors duration-300">Live & Recorded Sessions</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
@@ -172,12 +216,12 @@ const Landing = () => {
                 </CardDescription>
               </CardContent>
             </Card>
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className="card-modern card-hover text-center group animate-fade-in-up" style={{animationDelay: '0.2s'}}>
               <CardHeader>
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-glow">
                   <Trophy className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle>Daily Challenges</CardTitle>
+                <CardTitle className="group-hover:text-primary transition-colors duration-300">Daily Challenges</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
@@ -185,12 +229,12 @@ const Landing = () => {
                 </CardDescription>
               </CardContent>
             </Card>
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className="card-modern card-hover text-center group animate-fade-in-up" style={{animationDelay: '0.4s'}}>
               <CardHeader>
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-glow">
                   <Award className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle>Verified Certificates</CardTitle>
+                <CardTitle className="group-hover:text-primary transition-colors duration-300">Verified Certificates</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
@@ -203,41 +247,53 @@ const Landing = () => {
       </section>
 
       {/* Courses Section */}
-      <section className="py-16 px-6">
+      <section className="py-16 px-6 bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 animate-fade-in">
             <h2 className="text-3xl font-bold text-foreground mb-4">Popular Courses</h2>
             <p className="text-muted-foreground text-lg">Choose from our industry-focused internship programs</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course, index) => (
-              <Card key={index} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <Card key={index} className="card-modern card-interactive group animate-fade-in-up hover-lift hover-glow" style={{animationDelay: `${index * 0.1}s`}}>
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-3xl">{course.icon}</span>
-                    <Badge variant="secondary">{course.price}</Badge>
+                    <span className="text-4xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 float-animation" style={{animationDelay: `${index * 0.5}s`}}>{course.icon}</span>
+                    <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 group-hover:shadow-glow transition-all duration-300">{course.price}</Badge>
                   </div>
-                  <CardTitle className="text-xl">{course.title}</CardTitle>
-                  <CardDescription>{course.description}</CardDescription>
+                  <CardTitle className="text-xl group-hover:text-primary transition-colors duration-300">{course.title}</CardTitle>
+                  <CardDescription className="leading-relaxed">{course.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <BookOpen className="h-4 w-4 mr-1" />
-                      {course.duration}
+                  <div className="space-y-3 mb-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <BookOpen className="h-4 w-4 mr-1" />
+                        {course.duration}
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Users className="h-4 w-4 mr-1" />
+                        {course.students}
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Users className="h-4 w-4 mr-1" />
-                      {course.students}
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
-                      {course.rating}
+                    <div className="flex items-center justify-center">
+                      {courseRatings[course.title] ? (
+                        <StarDisplay
+                          rating={courseRatings[course.title].averageRating}
+                          totalReviews={courseRatings[course.title].totalReviews}
+                          size="sm"
+                        />
+                      ) : (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
+                          {course.rating}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <Link to={`/course/${course.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                    <Button className="w-full">
-                      View Details <ArrowRight className="ml-2 h-4 w-4" />
+                    <Button className="w-full btn-gradient group-hover:shadow-glow transition-all duration-300">
+                      View Details <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
                     </Button>
                   </Link>
                 </CardContent>

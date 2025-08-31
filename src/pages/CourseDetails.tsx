@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useParams } from "react-router-dom";
+import { FeedbackForm } from "@/components/FeedbackForm";
+import { CourseReviews } from "@/components/CourseReviews";
+import { StarDisplay } from "@/components/ui/star-rating";
+import { FeedbackService } from "@/lib/feedbackService";
+import { useAuth } from "@/lib/auth";
 import { 
   ArrowLeft, 
   Play, 
@@ -23,7 +28,17 @@ import {
 const CourseDetails = () => {
   const { courseId } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [courseRating, setCourseRating] = useState<any>(null);
+
+  useEffect(() => {
+    // Load course rating
+    if (courseId) {
+      const rating = FeedbackService.getCourseRating('fullstack'); // Default to fullstack for demo
+      setCourseRating(rating);
+    }
+  }, [courseId]);
 
   // Mock course data - in real app, this would be fetched based on courseId
   const course = {
@@ -164,8 +179,18 @@ const CourseDetails = () => {
 
             <div className="flex items-center space-x-6 mb-6">
               <div className="flex items-center space-x-2">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">{course.rating}</span>
+                {courseRating ? (
+                  <StarDisplay
+                    rating={courseRating.averageRating}
+                    totalReviews={courseRating.totalReviews}
+                    size="md"
+                  />
+                ) : (
+                  <>
+                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    <span className="font-semibold">{course.rating}</span>
+                  </>
+                )}
                 <span className="text-muted-foreground">({course.students} students)</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -244,11 +269,13 @@ const CourseDetails = () => {
 
         {/* Course Content */}
         <Tabs defaultValue="curriculum" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="requirements">Requirements</TabsTrigger>
             <TabsTrigger value="outcomes">Outcomes</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="feedback">Give Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="curriculum" className="space-y-6">
@@ -348,6 +375,26 @@ const CourseDetails = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="reviews" className="space-y-6">
+            <CourseReviews
+              courseId="fullstack"
+              courseName={course.title}
+            />
+          </TabsContent>
+
+          <TabsContent value="feedback" className="space-y-6">
+            <FeedbackForm
+              courseId="fullstack"
+              courseName={course.title}
+              onSubmitSuccess={() => {
+                toast({
+                  title: "Thank you!",
+                  description: "Your feedback helps us improve our courses.",
+                });
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>

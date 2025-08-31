@@ -5,39 +5,60 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-import { AuthService } from "@/lib/auth";
+import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{email?: string; password?: string}>({});
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login, isLoading } = useAuth();
+
+  const validateForm = () => {
+    const errors: {email?: string; password?: string} = {};
+
+    if (!email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!password.trim()) {
+      errors.password = "Password is required";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+
+    if (!validateForm()) {
+      return;
+    }
 
     try {
-      const result = AuthService.login({ email, password });
-      
+      const result = await login({ email, password });
+
       if (result) {
         const { user } = result;
-        
+
         if (user.role === 'admin') {
           toast({
             title: "Welcome Admin!",
             description: "Redirecting to admin dashboard...",
           });
-          navigate("/admin");
+          navigate("/admin", { replace: true });
         } else {
           toast({
             title: "Login Successful!",
             description: "Welcome to your student dashboard.",
           });
-          navigate("/student");
+          navigate("/student", { replace: true });
         }
       } else {
         toast({
@@ -52,8 +73,6 @@ const Login = () => {
         description: "An error occurred. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -86,9 +105,18 @@ const Login = () => {
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (validationErrors.email) {
+                      setValidationErrors(prev => ({ ...prev, email: undefined }));
+                    }
+                  }}
+                  className={validationErrors.email ? "border-red-500" : ""}
+                  disabled={isLoading}
                 />
+                {validationErrors.email && (
+                  <p className="text-sm text-red-500">{validationErrors.email}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -98,8 +126,14 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (validationErrors.password) {
+                        setValidationErrors(prev => ({ ...prev, password: undefined }));
+                      }
+                    }}
+                    className={validationErrors.password ? "border-red-500" : ""}
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -107,6 +141,7 @@ const Login = () => {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -115,13 +150,23 @@ const Login = () => {
                     )}
                   </Button>
                 </div>
+                {validationErrors.password && (
+                  <p className="text-sm text-red-500">{validationErrors.password}</p>
+                )}
               </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-primary to-primary/90" 
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-primary to-primary/90"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
             

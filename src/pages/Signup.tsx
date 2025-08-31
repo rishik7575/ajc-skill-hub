@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-import { AuthService } from "@/lib/auth";
+import { Eye, EyeOff, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { PasswordStrength } from "@/components/PasswordStrength";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -17,53 +18,75 @@ const Signup = () => {
     confirmPassword: ""
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signup, isLoading } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: value
     }));
+
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+
+    if (!formData.name.trim()) {
+      errors.name = "Name is required";
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.password.trim()) {
+      errors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      errors.password = "Password must be at least 6 characters long";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])|(?=.*\d)/.test(formData.password)) {
+      errors.password = "Password should contain uppercase, lowercase, or numbers";
+    }
+
+    if (!formData.confirmPassword.trim()) {
+      errors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+
+    if (!validateForm()) {
+      return;
+    }
 
     try {
-      // Validation
-      if (formData.password !== formData.confirmPassword) {
-        toast({
-          title: "Password Mismatch",
-          description: "Passwords do not match. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (formData.password.length < 6) {
-        toast({
-          title: "Weak Password",
-          description: "Password must be at least 6 characters long.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const result = AuthService.signup({ 
-        name: formData.name, 
-        email: formData.email, 
-        password: formData.password 
+      const result = await signup({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
       });
-      
+
       if (result) {
         toast({
           title: "Account Created!",
           description: "Welcome to AJC Internship Platform.",
         });
-        navigate("/student");
+        navigate("/student", { replace: true });
       } else {
         toast({
           title: "Signup Failed",
@@ -72,14 +95,12 @@ const Signup = () => {
         });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Registration Failed",
-        description: "An error occurred. Please try again.",
+        description: error.message || "An error occurred. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -114,8 +135,15 @@ const Signup = () => {
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleInputChange}
+                  className={validationErrors.name ? "border-red-500 focus:border-red-500" : ""}
                   required
                 />
+                {validationErrors.name && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.name}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -126,8 +154,15 @@ const Signup = () => {
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  className={validationErrors.email ? "border-red-500 focus:border-red-500" : ""}
                   required
                 />
+                {validationErrors.email && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.email}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mobile">Mobile Number</Label>
@@ -148,9 +183,10 @@ const Signup = () => {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 6 characters)"
                     value={formData.password}
                     onChange={handleInputChange}
+                    className={validationErrors.password ? "border-red-500 focus:border-red-500" : ""}
                     required
                   />
                   <Button
@@ -167,6 +203,13 @@ const Signup = () => {
                     )}
                   </Button>
                 </div>
+                {validationErrors.password && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.password}
+                  </p>
+                )}
+                <PasswordStrength password={formData.password} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -177,15 +220,29 @@ const Signup = () => {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
+                  className={validationErrors.confirmPassword ? "border-red-500 focus:border-red-500" : ""}
                   required
                 />
+                {validationErrors.confirmPassword && (
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.confirmPassword}
+                  </p>
+                )}
               </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-primary to-primary/90" 
-                disabled={isLoading}
+              <Button
+                type="submit"
+                className="w-full btn-gradient hover:shadow-glow transition-all duration-300"
+                disabled={isLoading || Object.keys(validationErrors).length > 0}
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
             

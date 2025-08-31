@@ -3,36 +3,47 @@ import { STORAGE_KEYS, Activity, Notification, StudentProgress } from './mockDat
 // Student-specific data management
 export class StudentDataService {
   static getStudentProgress(userId: string): StudentProgress[] {
-    const data = localStorage.getItem(STORAGE_KEYS.STUDENT_PROGRESS);
-    const allProgress = data ? JSON.parse(data) : [];
-    return allProgress.filter((p: StudentProgress) => p.userId === userId);
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.STUDENT_PROGRESS);
+      const allProgress = data ? JSON.parse(data) : [];
+      return allProgress.filter((p: StudentProgress) => p.userId === userId);
+    } catch (error) {
+      console.error('Error reading student progress from localStorage:', error);
+      return [];
+    }
   }
 
-  static updateStudentProgress(userId: string, courseId: string, updates: Partial<StudentProgress>): void {
-    const data = localStorage.getItem(STORAGE_KEYS.STUDENT_PROGRESS);
-    let allProgress = data ? JSON.parse(data) : [];
-    
-    const existingIndex = allProgress.findIndex((p: StudentProgress) => 
-      p.userId === userId && p.courseId === courseId
-    );
-    
-    if (existingIndex >= 0) {
-      allProgress[existingIndex] = { ...allProgress[existingIndex], ...updates };
-    } else {
-      const newProgress: StudentProgress = {
-        userId,
-        courseId,
-        progress: 0,
-        completedLessons: 0,
-        rank: 1,
-        mcqScores: [],
-        lastActivity: new Date().toISOString(),
-        ...updates
-      };
-      allProgress.push(newProgress);
+  static updateStudentProgress(userId: string, courseId: string, updates: Partial<StudentProgress>): boolean {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.STUDENT_PROGRESS);
+      let allProgress = data ? JSON.parse(data) : [];
+
+      const existingIndex = allProgress.findIndex((p: StudentProgress) =>
+        p.userId === userId && p.courseId === courseId
+      );
+
+      if (existingIndex >= 0) {
+        allProgress[existingIndex] = { ...allProgress[existingIndex], ...updates };
+      } else {
+        const newProgress: StudentProgress = {
+          userId,
+          courseId,
+          progress: 0,
+          completedLessons: 0,
+          rank: 1,
+          mcqScores: [],
+          lastActivity: new Date().toISOString(),
+          ...updates
+        };
+        allProgress.push(newProgress);
+      }
+
+      localStorage.setItem(STORAGE_KEYS.STUDENT_PROGRESS, JSON.stringify(allProgress));
+      return true;
+    } catch (error) {
+      console.error('Error updating student progress:', error);
+      return false;
     }
-    
-    localStorage.setItem(STORAGE_KEYS.STUDENT_PROGRESS, JSON.stringify(allProgress));
   }
 
   static getStudentNotifications(userId: string): Notification[] {
