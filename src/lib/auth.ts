@@ -117,7 +117,7 @@ export class AuthService {
   static isAuthenticated(): boolean {
     try {
       const currentUser = this.getCurrentUser();
-      return currentUser !== null && currentUser?.user && currentUser?.token;
+      return !!(currentUser && currentUser.user && currentUser.token);
     } catch (error) {
       console.error('Error checking authentication status:', error);
       return false;
