@@ -24,7 +24,7 @@ import {
   Target
 } from "lucide-react";
 import { ProgressIndicator, CircularProgress } from "@/components/ProgressIndicator";
-import { NotificationSystem, useNotifications } from "@/components/NotificationSystem";
+import { NotificationSystem } from "@/components/NotificationSystem";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthService } from "@/lib/auth";
@@ -34,7 +34,7 @@ import { getCourseData, getCertificateData } from "@/lib/mockData";
 const StudentDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { notifications: systemNotifications, markAsRead, markAllAsRead, dismiss, addNotification } = useNotifications();
+  
 
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -165,12 +165,7 @@ const StudentDashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <NotificationSystem
-                notifications={systemNotifications}
-                onMarkAsRead={markAsRead}
-                onMarkAllAsRead={markAllAsRead}
-                onDismiss={dismiss}
-              />
+              <NotificationSystem />
               <ThemeToggle />
               <Link to="/">
                 <Button variant="outline" className="hover:bg-primary/5 hover:border-primary/30 transition-all duration-300">
