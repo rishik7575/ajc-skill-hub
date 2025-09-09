@@ -29,6 +29,7 @@ const VerifyCertificate = lazy(() =>
   import("./pages/VerifyCertificate").then(module => ({ default: module.default }))
 );
 const Faculty = lazy(() => import("./pages/Faculty").then(module => ({ default: module.default })));
+const FacultyDashboard = lazy(() => import("./pages/FacultyDashboard").then(module => ({ default: module.default })));
 const Contact = lazy(() => import("./pages/Contact").then(module => ({ default: module.default })));
 const CourseDetails = lazy(() =>
   import("./pages/CourseDetails").then(module => ({ default: module.default }))
@@ -89,6 +90,11 @@ const App = () => (
                 } />
                 <Route path="/verify-certificate" element={<VerifyCertificate />} />
                 <Route path="/faculty" element={<Faculty />} />
+                <Route path="/faculty-dashboard" element={
+                  <ProtectedRoute requireFaculty={true}>
+                    <FacultyDashboard />
+                  </ProtectedRoute>
+                } />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/course/:courseId" element={<CourseDetails />} />
                 <Route path="/courses" element={<Landing />} />

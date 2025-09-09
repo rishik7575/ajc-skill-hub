@@ -51,6 +51,26 @@ export class AuthService {
       return { user: adminUser, token };
     }
 
+    // Check faculty credentials
+    const facultyData = localStorage.getItem(STORAGE_KEYS.FACULTY);
+    const faculty = facultyData ? JSON.parse(facultyData) : [];
+    const facultyUser = faculty.find((f: any) => f.email === email && f.password === password);
+    
+    if (facultyUser) {
+      console.log('Faculty login successful');
+      const facultyUserData: User = {
+        id: facultyUser.id,
+        email: facultyUser.email,
+        name: facultyUser.name,
+        role: 'faculty',
+        assignedCourses: facultyUser.assignedCourses,
+        createdAt: new Date().toISOString()
+      };
+      const token = generateSecureToken({ userId: facultyUserData.id, role: facultyUserData.role });
+      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, { user: facultyUserData, token });
+      return { user: facultyUserData, token };
+    }
+
     // Student login - check if user exists
     const users = getUserData();
     console.log('Available users:', users.map(u => ({ email: u.email, role: u.role })));
@@ -178,6 +198,16 @@ export class AuthService {
       return current?.user.role === 'admin' || false;
     } catch (error) {
       console.error('Error checking admin status:', error);
+      return false;
+    }
+  }
+
+  static isFaculty(): boolean {
+    try {
+      const current = this.getCurrentUser();
+      return current?.user.role === 'faculty' || false;
+    } catch (error) {
+      console.error('Error checking faculty status:', error);
       return false;
     }
   }

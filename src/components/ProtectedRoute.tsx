@@ -5,9 +5,10 @@ import { AuthService } from '@/lib/auth';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireFaculty?: boolean;
 }
 
-const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requireAdmin = false, requireFaculty = false }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
   const [currentUser, setCurrentUser] = useState<ReturnType<typeof AuthService.getCurrentUser>>(null);
@@ -27,8 +28,18 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
         return;
       }
 
-      if (!requireAdmin && user.user.role === 'admin') {
+      if (requireFaculty && user.user.role !== 'faculty') {
+        navigate('/', { replace: true });
+        return;
+      }
+
+      if (!requireAdmin && !requireFaculty && user.user.role === 'admin') {
         navigate('/admin', { replace: true });
+        return;
+      }
+
+      if (!requireAdmin && !requireFaculty && user.user.role === 'faculty') {
+        navigate('/faculty-dashboard', { replace: true });
         return;
       }
 
@@ -36,7 +47,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
     };
 
     checkAuth();
-  }, [navigate, requireAdmin]);
+  }, [navigate, requireAdmin, requireFaculty]);
 
   // Show loading state while checking authentication
   if (isChecking) {
@@ -55,7 +66,15 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
     return null;
   }
 
-  if (!requireAdmin && currentUser.user.role === 'admin') {
+  if (requireFaculty && currentUser.user.role !== 'faculty') {
+    return null;
+  }
+
+  if (!requireAdmin && !requireFaculty && currentUser.user.role === 'admin') {
+    return null;
+  }
+
+  if (!requireAdmin && !requireFaculty && currentUser.user.role === 'faculty') {
     return null;
   }
 

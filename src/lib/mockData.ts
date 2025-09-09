@@ -2,8 +2,9 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'student';
+  role: 'admin' | 'student' | 'faculty';
   enrolledCourses?: string[];
+  assignedCourses?: string[];
   createdAt: string;
   password?: string; // For demo purposes - in real app, this would be hashed
 }
@@ -32,6 +33,52 @@ export interface FacultyMember {
   expertise: string[];
   experience: string;
   bio: string;
+  password?: string;
+  assignedCourses: string[];
+}
+
+export interface CourseMaterial {
+  id: string;
+  courseId: string;
+  facultyId: string;
+  title: string;
+  type: 'notes' | 'video' | 'zoom_link';
+  fileUrl?: string;
+  zoomLink?: string;
+  description: string;
+  uploadedAt: string;
+}
+
+export interface TaskSubmission {
+  id: string;
+  taskId: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  submissionText: string;
+  fileUrl?: string;
+  submittedAt: string;
+  status: 'pending' | 'approved' | 'rejected' | 'needs_revision';
+  grade?: number;
+  feedback?: string;
+  gradedAt?: string;
+  gradedBy?: string;
+}
+
+export interface Message {
+  id: string;
+  fromId: string;
+  toId: string;
+  fromName: string;
+  toName: string;
+  fromRole: 'student' | 'faculty' | 'admin';
+  toRole: 'student' | 'faculty' | 'admin';
+  subject: string;
+  content: string;
+  sentAt: string;
+  readAt?: string;
+  courseId?: string;
+  parentMessageId?: string;
 }
 
 export interface StudentProgress {
@@ -199,7 +246,9 @@ export const mockFaculty: FacultyMember[] = [
     status: 'Active',
     expertise: ['Data Analytics', 'Business Intelligence', 'Power BI', 'Tableau'],
     experience: '8+ years',
-    bio: 'Senior Data Analyst with expertise in Power BI and business intelligence solutions.'
+    bio: 'Senior Data Analyst with expertise in Power BI and business intelligence solutions.',
+    password: 'faculty123',
+    assignedCourses: ['powerbi']
   },
   {
     id: '2',
@@ -209,7 +258,9 @@ export const mockFaculty: FacultyMember[] = [
     status: 'Active',
     expertise: ['React.js', 'Node.js', 'MongoDB', 'Express.js'],
     experience: '6+ years',
-    bio: 'Full Stack Developer with experience in modern web technologies and cloud deployment.'
+    bio: 'Full Stack Developer with experience in modern web technologies and cloud deployment.',
+    password: 'faculty123',
+    assignedCourses: ['fullstack']
   },
   {
     id: '3',
@@ -219,7 +270,9 @@ export const mockFaculty: FacultyMember[] = [
     status: 'Active',
     expertise: ['React.js', 'Next.js', 'TypeScript', 'UI/UX Design'],
     experience: '5+ years',
-    bio: 'Frontend specialist with a passion for creating beautiful and functional user interfaces.'
+    bio: 'Frontend specialist with a passion for creating beautiful and functional user interfaces.',
+    password: 'faculty123',
+    assignedCourses: ['frontend']
   },
   {
     id: '4',
@@ -229,7 +282,102 @@ export const mockFaculty: FacultyMember[] = [
     status: 'Active',
     expertise: ['Node.js', 'Python', 'PostgreSQL', 'AWS'],
     experience: '7+ years',
-    bio: 'Backend engineer with expertise in scalable API development and cloud architecture.'
+    bio: 'Backend engineer with expertise in scalable API development and cloud architecture.',
+    password: 'faculty123',
+    assignedCourses: ['backend']
+  }
+];
+
+export const mockCourseMaterials: CourseMaterial[] = [
+  {
+    id: 'mat1',
+    courseId: 'powerbi',
+    facultyId: '1',
+    title: 'Introduction to Power BI - Lecture Notes',
+    type: 'notes',
+    fileUrl: '/materials/powerbi-intro.pdf',
+    description: 'Comprehensive notes covering Power BI basics and data visualization concepts.',
+    uploadedAt: '2024-03-01T10:00:00Z'
+  },
+  {
+    id: 'mat2',
+    courseId: 'powerbi',
+    facultyId: '1',
+    title: 'Live Session: DAX Functions Deep Dive',
+    type: 'zoom_link',
+    zoomLink: 'https://zoom.us/j/123456789',
+    description: 'Interactive session covering advanced DAX functions and calculations.',
+    uploadedAt: '2024-03-02T14:00:00Z'
+  },
+  {
+    id: 'mat3',
+    courseId: 'fullstack',
+    facultyId: '2',
+    title: 'React Hooks Tutorial - Video Lecture',
+    type: 'video',
+    fileUrl: '/materials/react-hooks-tutorial.mp4',
+    description: 'Complete video guide to React Hooks with practical examples.',
+    uploadedAt: '2024-03-03T09:00:00Z'
+  }
+];
+
+export const mockTaskSubmissions: TaskSubmission[] = [
+  {
+    id: 'sub1',
+    taskId: 'task1',
+    studentId: 'student1',
+    studentName: 'Demo Student',
+    courseId: 'powerbi',
+    submissionText: 'I have created a comprehensive Power BI dashboard showing sales analytics...',
+    fileUrl: '/submissions/demo-student-powerbi-dashboard.pbix',
+    submittedAt: '2024-03-10T15:30:00Z',
+    status: 'pending'
+  },
+  {
+    id: 'sub2',
+    taskId: 'task2',
+    studentId: 'student2',
+    studentName: 'Sarah Johnson',
+    courseId: 'fullstack',
+    submissionText: 'My full-stack application includes user authentication, CRUD operations...',
+    fileUrl: '/submissions/sarah-fullstack-project.zip',
+    submittedAt: '2024-03-08T18:45:00Z',
+    status: 'approved',
+    grade: 95,
+    feedback: 'Excellent work! Clean code structure and good implementation of authentication.',
+    gradedAt: '2024-03-09T10:00:00Z',
+    gradedBy: '2'
+  }
+];
+
+export const mockMessages: Message[] = [
+  {
+    id: 'msg1',
+    fromId: 'student1',
+    toId: '1',
+    fromName: 'Demo Student',
+    toName: 'Dr. Amit Sharma',
+    fromRole: 'student',
+    toRole: 'faculty',
+    subject: 'Question about DAX functions',
+    content: 'Hello Dr. Sharma, I am having trouble understanding the CALCULATE function in DAX. Could you please explain it with an example?',
+    sentAt: '2024-03-10T14:30:00Z',
+    courseId: 'powerbi'
+  },
+  {
+    id: 'msg2',
+    fromId: '1',
+    toId: 'student1',
+    fromName: 'Dr. Amit Sharma',
+    toName: 'Demo Student',
+    fromRole: 'faculty',
+    toRole: 'student',
+    subject: 'Re: Question about DAX functions',
+    content: 'Hi! The CALCULATE function is used to modify filter context. For example: CALCULATE(SUM(Sales[Amount]), Sales[Year] = 2024) will sum amounts only for year 2024.',
+    sentAt: '2024-03-10T16:00:00Z',
+    readAt: '2024-03-10T16:30:00Z',
+    courseId: 'powerbi',
+    parentMessageId: 'msg1'
   }
 ];
 
@@ -434,7 +582,9 @@ export const STORAGE_KEYS = {
   DAILY_TASKS: 'ajc_daily_tasks',
   TASK_SUBMISSIONS: 'ajc_task_submissions',
   PAYMENTS: 'ajc_payments',
-  LIVE_SESSIONS: 'ajc_live_sessions'
+  LIVE_SESSIONS: 'ajc_live_sessions',
+  COURSE_MATERIALS: 'ajc_course_materials',
+  MESSAGES: 'ajc_messages'
 };
 
 // Initialize mock data in localStorage if not exists
@@ -456,6 +606,15 @@ export const initializeMockData = () => {
   }
   if (!localStorage.getItem(STORAGE_KEYS.COURSE_RATINGS)) {
     localStorage.setItem(STORAGE_KEYS.COURSE_RATINGS, JSON.stringify(mockCourseRatings));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.COURSE_MATERIALS)) {
+    localStorage.setItem(STORAGE_KEYS.COURSE_MATERIALS, JSON.stringify(mockCourseMaterials));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.TASK_SUBMISSIONS)) {
+    localStorage.setItem(STORAGE_KEYS.TASK_SUBMISSIONS, JSON.stringify(mockTaskSubmissions));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.MESSAGES)) {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(mockMessages));
   }
 };
 
