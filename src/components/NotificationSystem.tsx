@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, Info, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,13 +14,7 @@ export const NotificationSystem = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      loadNotifications();
-    }
-  }, [user]);
-
-  const loadNotifications = () => {
+  const loadNotifications = useCallback(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
       const allNotifications: Notification[] = stored ? JSON.parse(stored) : [];
@@ -31,7 +25,13 @@ export const NotificationSystem = () => {
     } catch (error) {
       console.error('Error loading notifications:', error);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      loadNotifications();
+    }
+  }, [user, loadNotifications]);
 
   const markAsRead = (notificationId: string) => {
     try {
@@ -187,7 +187,17 @@ export const NotificationSystem = () => {
                       </Badge>
                     )}
                     <p className="text-xs text-muted-foreground mt-2">
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                      {(() => {
+                        try {
+                          const createdAt = new Date(notification.createdAt);
+                          if (isNaN(createdAt.getTime())) {
+                            return 'Unknown time';
+                          }
+                          return formatDistanceToNow(createdAt, { addSuffix: true });
+                        } catch {
+                          return 'Unknown time';
+                        }
+                      })()}
                     </p>
                   </CardContent>
                 </Card>

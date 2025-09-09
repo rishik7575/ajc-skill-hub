@@ -42,12 +42,12 @@ export const CourseSearch: React.FC<CourseSearchProps> = ({ courses, className }
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [sortBy, setSortBy] = useState('popularity');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [courseRatings, setCourseRatings] = useState<{[key: string]: any}>({});
+  const [courseRatings, setCourseRatings] = useState<{[key: string]: CourseRating}>({});
 
   useEffect(() => {
     // Load course ratings
     const loadRatings = () => {
-      const ratings: {[key: string]: any} = {};
+      const ratings: {[key: string]: CourseRating} = {};
       courses.forEach(course => {
         const courseId = course.title.toLowerCase().replace(/\s+/g, '').replace('bi', 'bi');
         let id = courseId;
@@ -82,7 +82,7 @@ export const CourseSearch: React.FC<CourseSearchProps> = ({ courses, className }
 
   // Filter and sort courses
   const filteredAndSortedCourses = useMemo(() => {
-    let filtered = courses.filter(course => {
+    const filtered = courses.filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (course.tags && course.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
@@ -101,21 +101,24 @@ export const CourseSearch: React.FC<CourseSearchProps> = ({ courses, className }
         case 'title':
           comparison = a.title.localeCompare(b.title);
           break;
-        case 'price':
+        case 'price': {
           const priceA = parseInt(a.price.replace(/[^\d]/g, ''));
           const priceB = parseInt(b.price.replace(/[^\d]/g, ''));
           comparison = priceA - priceB;
           break;
-        case 'rating':
+        }
+        case 'rating': {
           const ratingA = courseRatings[a.title]?.averageRating || parseFloat(a.rating);
           const ratingB = courseRatings[b.title]?.averageRating || parseFloat(b.rating);
           comparison = ratingA - ratingB;
           break;
-        case 'popularity':
+        }
+        case 'popularity': {
           const studentsA = parseInt(a.students.replace(/[^\d]/g, ''));
           const studentsB = parseInt(b.students.replace(/[^\d]/g, ''));
           comparison = studentsA - studentsB;
           break;
+        }
         default:
           comparison = 0;
       }
@@ -282,7 +285,7 @@ export const CourseSearch: React.FC<CourseSearchProps> = ({ courses, className }
                   )}
                 </div>
               </div>
-              <Link to={`/course/${course.title.toLowerCase().replace(/\s+/g, '-')}`}>
+              <Link to={`/course/${course.id}`}>
                 <Button className="w-full btn-gradient group-hover:shadow-glow transition-all duration-300">
                   View Details <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>

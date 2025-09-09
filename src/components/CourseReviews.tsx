@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StarDisplay, RatingDistribution } from '@/components/ui/star-rating';
 import { FeedbackService } from '@/lib/feedbackService';
 import { CourseFeedback, CourseRating } from '@/lib/mockData';
-import { MessageSquare, ThumbsUp, Calendar, User } from 'lucide-react';
+import { MessageSquare, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface CourseReviewsProps {
@@ -24,11 +24,7 @@ export const CourseReviews: React.FC<CourseReviewsProps> = ({
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadReviews();
-  }, [courseId]);
-
-  const loadReviews = () => {
+  const loadReviews = useCallback(() => {
     setLoading(true);
     try {
       const courseReviews = FeedbackService.getCourseFeedbackList(courseId, true);
@@ -41,7 +37,11 @@ export const CourseReviews: React.FC<CourseReviewsProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
 
   const displayedReviews = showAll ? reviews : reviews.slice(0, 3);
 
@@ -136,7 +136,17 @@ export const CourseReviews: React.FC<CourseReviewsProps> = ({
                         <div className="flex items-center gap-2">
                           <StarDisplay rating={review.rating} size="sm" />
                           <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
+                            {(() => {
+                              try {
+                                const createdAt = new Date(review.createdAt);
+                                if (isNaN(createdAt.getTime())) {
+                                  return 'Unknown time';
+                                }
+                                return formatDistanceToNow(createdAt, { addSuffix: true });
+                              } catch {
+                                return 'Unknown time';
+                              }
+                            })()}
                           </span>
                         </div>
                       </div>
@@ -155,7 +165,17 @@ export const CourseReviews: React.FC<CourseReviewsProps> = ({
                           Admin Response
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(review.adminResponseDate!), { addSuffix: true })}
+                          {review.adminResponseDate && (() => {
+                            try {
+                              const responseDate = new Date(review.adminResponseDate);
+                              if (isNaN(responseDate.getTime())) {
+                                return 'Unknown time';
+                              }
+                              return formatDistanceToNow(responseDate, { addSuffix: true });
+                            } catch {
+                              return 'Unknown time';
+                            }
+                          })()}
                         </span>
                       </div>
                       <p className="text-sm text-blue-800">{review.adminResponse}</p>

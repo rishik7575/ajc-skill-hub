@@ -1,97 +1,85 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, BookOpen, Users, Award, Star, Play, Download, Trophy } from "lucide-react";
+import { ArrowRight, Users, Award, Star, Play, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StarDisplay } from "@/components/ui/star-rating";
 import { FeedbackService } from "@/lib/feedbackService";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { getCourseData, Course as CourseType } from "@/lib/mockData";
+import { CourseRating } from "@/lib/mockData";
 
 const Landing = () => {
-  const [courseRatings, setCourseRatings] = useState<{[key: string]: any}>({});
+  const [courses, setCourses] = useState<CourseType[]>([]);
+  const [courseRatings, setCourseRatings] = useState<Record<string, CourseRating>>({});
 
-  useEffect(() => {
-    // Load course ratings
-    const loadRatings = () => {
-      const ratings: {[key: string]: any} = {};
-      courses.forEach(course => {
-        const courseId = course.title.toLowerCase().replace(/\s+/g, '').replace('bi', 'bi');
-        let id = courseId;
-        if (courseId === 'powerbi') id = 'powerbi';
-        else if (courseId === 'fullstackdevelopment') id = 'fullstack';
-        else if (courseId === 'frontenddevelopment') id = 'frontend';
-        else if (courseId === 'backenddevelopment') id = 'backend';
-        else if (courseId === 'databasemanagement') id = 'database';
-        else if (courseId === 'flutterdevelopment') id = 'flutter';
+  const loadCourseData = useCallback(() => {
+    const allCourses = getCourseData();
+    setCourses(allCourses);
 
-        const rating = FeedbackService.getCourseRating(id);
+    const ratings: Record<string, CourseRating> = {};
+    allCourses.forEach(course => {
+      const rating = FeedbackService.getCourseRating(course.id);
         if (rating) {
-          ratings[course.title] = rating;
+        ratings[course.id] = rating;
         }
-      });
-      setCourseRatings(ratings);
-    };
-
-    loadRatings();
+    });
+    setCourseRatings(ratings);
   }, []);
 
-  const courses = [
-    {
-      title: "Power BI",
-      description: "Master data visualization and business intelligence",
-      price: "₹4,999",
-      duration: "8 weeks",
-      students: "150+",
-      rating: "4.8",
-      icon: "📊"
-    },
-    {
-      title: "Full Stack Development",
-      description: "Complete web development from frontend to backend",
-      price: "₹7,999",
-      duration: "12 weeks",
-      students: "300+",
-      rating: "4.9",
-      icon: "💻"
-    },
-    {
-      title: "Frontend Development",
-      description: "React, Next.js, and modern UI/UX development",
-      price: "₹5,999",
-      duration: "10 weeks",
-      students: "200+",
-      rating: "4.7",
-      icon: "🎨"
-    },
-    {
-      title: "Backend Development",
-      description: "Node.js, databases, and API development",
-      price: "₹5,999",
-      duration: "10 weeks",
-      students: "180+",
-      rating: "4.8",
-      icon: "⚙️"
-    },
-    {
-      title: "Database Management",
-      description: "SQL, NoSQL, and database optimization",
-      price: "₹4,499",
-      duration: "6 weeks",
-      students: "120+",
-      rating: "4.6",
-      icon: "🗄️"
-    },
-    {
-      title: "Flutter Development",
-      description: "Cross-platform mobile app development",
-      price: "₹6,499",
-      duration: "10 weeks",
-      students: "100+",
-      rating: "4.7",
-      icon: "📱"
-    }
-  ];
+  useEffect(() => {
+    loadCourseData();
+  }, [loadCourseData]);
+
+  // Memoize course cards for better performance
+  const courseCards = useMemo(() => {
+    return courses.map((course, index) => (
+      <Card key={course.id} className="card-modern card-interactive group animate-fade-in-up hover-lift hover-glow" style={{animationDelay: `${index * 0.1}s`}}>
+        <CardHeader>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-4xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 float-animation" style={{animationDelay: `${index * 0.5}s`}}>{course.icon}</span>
+            <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 group-hover:shadow-glow transition-all duration-300">₹{course.price}</Badge>
+          </div>
+          <CardTitle className="text-xl group-hover:text-primary transition-colors duration-300">{course.title}</CardTitle>
+          <CardDescription className="leading-relaxed">{course.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 mb-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <span className="mr-1">📚</span>
+                {course.duration}
+              </div>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Users className="h-4 w-4 mr-1" />
+                {course.students}+
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              {courseRatings[course.id] ? (
+                <StarDisplay
+                  rating={courseRatings[course.id]?.averageRating || 0}
+                  totalReviews={courseRatings[course.id]?.totalReviews || 0}
+                  size="sm"
+                />
+              ) : (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
+                  {course.rating}
+                </div>
+              )}
+            </div>
+          </div>
+          <Link to={`/course/${course.id}`}>
+            <Button className="w-full btn-gradient group-hover:shadow-glow transition-all duration-300">
+              View Details <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    ));
+  }, [courses, courseRatings]);
 
   const successStories = [
     {
@@ -254,51 +242,7 @@ const Landing = () => {
             <p className="text-muted-foreground text-lg">Choose from our industry-focused internship programs</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course, index) => (
-              <Card key={index} className="card-modern card-interactive group animate-fade-in-up hover-lift hover-glow" style={{animationDelay: `${index * 0.1}s`}}>
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-4xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 float-animation" style={{animationDelay: `${index * 0.5}s`}}>{course.icon}</span>
-                    <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 group-hover:shadow-glow transition-all duration-300">{course.price}</Badge>
-                  </div>
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors duration-300">{course.title}</CardTitle>
-                  <CardDescription className="leading-relaxed">{course.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 mb-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <BookOpen className="h-4 w-4 mr-1" />
-                        {course.duration}
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Users className="h-4 w-4 mr-1" />
-                        {course.students}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-center">
-                      {courseRatings[course.title] ? (
-                        <StarDisplay
-                          rating={courseRatings[course.title].averageRating}
-                          totalReviews={courseRatings[course.title].totalReviews}
-                          size="sm"
-                        />
-                      ) : (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
-                          {course.rating}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Link to={`/course/${course.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                    <Button className="w-full btn-gradient group-hover:shadow-glow transition-all duration-300">
-                      View Details <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+            {courseCards}
           </div>
         </div>
       </section>

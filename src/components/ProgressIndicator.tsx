@@ -22,7 +22,7 @@ export const ProgressIndicator = ({
   total,
   label,
   size = 'md',
-  variant = 'default',
+  variant: _variant = 'default',
   showPercentage = true,
   showStats = false,
   animated = true,

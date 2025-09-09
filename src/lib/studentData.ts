@@ -16,7 +16,7 @@ export class StudentDataService {
   static updateStudentProgress(userId: string, courseId: string, updates: Partial<StudentProgress>): boolean {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.STUDENT_PROGRESS);
-      let allProgress = data ? JSON.parse(data) : [];
+      const allProgress = data ? JSON.parse(data) : [];
 
       const existingIndex = allProgress.findIndex((p: StudentProgress) =>
         p.userId === userId && p.courseId === courseId

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { 
   BarChart, 
   Bar, 
@@ -12,20 +12,15 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
+
   Area,
   AreaChart
 } from 'recharts';
-import { 
-  Users, 
-  BookOpen, 
-  Award, 
-  TrendingUp, 
-  DollarSign, 
-  Target,
-  Calendar,
-  Star
+import {
+  Users,
+  BookOpen,
+  Award,
+  DollarSign
 } from 'lucide-react';
 import { getCourseData, getUserData, getCertificateData } from '@/lib/mockData';
 import { FeedbackService } from '@/lib/feedbackService';
@@ -44,10 +39,6 @@ interface AnalyticsData {
 export const AnalyticsDashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadAnalytics();
-  }, []);
 
   const loadAnalytics = () => {
     setLoading(true);
@@ -119,6 +110,10 @@ export const AnalyticsDashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
 
   if (loading) {
     return (

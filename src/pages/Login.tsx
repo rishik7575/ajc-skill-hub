@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useAuth, AuthService } from "@/lib/auth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,6 +16,15 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
+
+  // Debug function to reset rate limiting
+  const handleResetRateLimit = () => {
+    AuthService.resetRateLimit();
+    toast({
+      title: "Rate Limit Reset",
+      description: "All rate limits have been cleared.",
+    });
+  };
 
   const validateForm = () => {
     const errors: {email?: string; password?: string} = {};
@@ -42,10 +51,12 @@ const Login = () => {
     }
 
     try {
+      console.log('Attempting login with:', { email, passwordLength: password.length });
       const result = await login({ email, password });
 
       if (result) {
         const { user } = result;
+        console.log('Login successful for user:', user);
 
         if (user.role === 'admin') {
           toast({
@@ -61,6 +72,7 @@ const Login = () => {
           navigate("/student", { replace: true });
         }
       } else {
+        console.log('Login failed - no result returned');
         toast({
           title: "Login Failed",
           description: "Please check your credentials and try again.",
@@ -68,9 +80,10 @@ const Login = () => {
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Login Failed",
-        description: "An error occurred. Please try again.",
+        description: error instanceof Error ? error.message : "An error occurred. Please try again.",
         variant: "destructive",
       });
     }
@@ -185,6 +198,38 @@ const Login = () => {
                 Admin: rishikmaduri@gmail.com / Rishik@123<br />
                 Student: student@demo.com / password
               </p>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEmail('rishikmaduri@gmail.com');
+                    setPassword('Rishik@123');
+                  }}
+                  className="flex-1"
+                >
+                  Fill Admin
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEmail('student@demo.com');
+                    setPassword('password');
+                  }}
+                  className="flex-1"
+                >
+                  Fill Student
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetRateLimit}
+                className="w-full mt-2"
+              >
+                Reset Rate Limit
+              </Button>
             </div>
           </CardContent>
         </Card>

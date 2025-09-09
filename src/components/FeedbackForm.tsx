@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
 import { useToast } from '@/hooks/use-toast';
 import { FeedbackService } from '@/lib/feedbackService';
+import { CourseFeedback } from '@/lib/mockData';
 import { useAuth } from '@/lib/auth';
 import { Loader2, MessageSquare } from 'lucide-react';
 
@@ -25,7 +26,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [existingFeedback, setExistingFeedback] = useState<any>(null);
+  const [existingFeedback, setExistingFeedback] = useState<CourseFeedback | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -96,7 +97,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
       } else {
         throw new Error('Failed to submit feedback');
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Submission Failed",
         description: "There was an error submitting your feedback. Please try again.",

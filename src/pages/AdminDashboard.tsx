@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
@@ -20,8 +21,7 @@ import {
   Trash2, 
   LogOut,
   UserCheck,
-  TrendingUp,
-  FileText
+
 } from "lucide-react";
 import { AuthService } from "@/lib/auth";
 import { getCourseData, saveCourseData, getFacultyData, saveFacultyData, Course, FacultyMember } from "@/lib/mockData";
@@ -42,6 +42,10 @@ const AdminDashboard = () => {
 
   const [newCourse, setNewCourse] = useState({ title: "", price: "", description: "" });
   const [newFaculty, setNewFaculty] = useState({ name: "", email: "", course: "" });
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     // Load data from localStorage
@@ -110,14 +114,23 @@ const AdminDashboard = () => {
     }
   };
 
-  const deleteCourse = (id: string) => {
-    const updatedCourses = courses.filter(course => course.id !== id);
-    setCourses(updatedCourses);
-    saveCourseData(updatedCourses);
-    toast({
-      title: "Course Deleted",
-      description: "Course has been removed successfully.",
-    });
+  const handleDeleteCourse = (id: string) => {
+    setCourseToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCourse = () => {
+    if (courseToDelete) {
+      const updatedCourses = courses.filter(course => course.id !== courseToDelete);
+      setCourses(updatedCourses);
+      saveCourseData(updatedCourses);
+      toast({
+        title: "Course Deleted",
+        description: "Course has been removed successfully.",
+      });
+      setIsDeleteDialogOpen(false);
+      setCourseToDelete(null);
+    }
   };
 
   const deleteFaculty = (id: string) => {
@@ -128,6 +141,28 @@ const AdminDashboard = () => {
       title: "Faculty Removed",
       description: "Faculty member has been removed successfully.",
     });
+  };
+
+  const handleEditCourse = (course: Course) => {
+    setEditingCourse(course);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateCourse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingCourse) {
+      const updatedCourses = courses.map(course =>
+        course.id === editingCourse.id ? editingCourse : course
+      );
+      setCourses(updatedCourses);
+      saveCourseData(updatedCourses);
+      setIsEditDialogOpen(false);
+      setEditingCourse(null);
+      toast({
+        title: "Course Updated",
+        description: `${editingCourse.title} has been updated successfully.`,
+      });
+    }
   };
 
   const totalStudents = courses.reduce((sum, course) => sum + course.students, 0);
@@ -240,30 +275,41 @@ const AdminDashboard = () => {
                 <CardDescription>Create a new course for students to enroll</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleAddCourse} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="courseTitle">Course Title</Label>
-                    <Input
-                      id="courseTitle"
-                      value={newCourse.title}
-                      onChange={(e) => setNewCourse({...newCourse, title: e.target.value})}
-                      placeholder="e.g., React Development"
-                      required
-                    />
+                <form onSubmit={handleAddCourse} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="courseTitle">Course Title</Label>
+                      <Input
+                        id="courseTitle"
+                        value={newCourse.title}
+                        onChange={(e) => setNewCourse({...newCourse, title: e.target.value})}
+                        placeholder="e.g., React Development"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="coursePrice">Price (₹)</Label>
+                      <Input
+                        id="coursePrice"
+                        type="number"
+                        value={newCourse.price}
+                        onChange={(e) => setNewCourse({...newCourse, price: e.target.value})}
+                        placeholder="4999"
+                        required
+                      />
+                    </div>
                   </div>
                   <div>
-                    <Label htmlFor="coursePrice">Price (₹)</Label>
+                    <Label htmlFor="courseDescription">Description</Label>
                     <Input
-                      id="coursePrice"
-                      type="number"
-                      value={newCourse.price}
-                      onChange={(e) => setNewCourse({...newCourse, price: e.target.value})}
-                      placeholder="4999"
-                      required
+                      id="courseDescription"
+                      value={newCourse.description}
+                      onChange={(e) => setNewCourse({...newCourse, description: e.target.value})}
+                      placeholder="Course description"
                     />
                   </div>
-                  <div className="flex items-end">
-                    <Button type="submit" className="w-full">
+                  <div className="flex justify-end">
+                    <Button type="submit">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Course
                     </Button>
@@ -289,10 +335,10 @@ const AdminDashboard = () => {
                     <div className="flex items-center space-x-4">
                       <Badge variant="secondary">₹{course.price}</Badge>
                       <Badge variant="outline">{course.status}</Badge>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleEditCourse(course)}>
                         <Edit3 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => deleteCourse(course.id)}>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteCourse(course.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -300,6 +346,89 @@ const AdminDashboard = () => {
                 </Card>
               ))}
             </div>
+
+            {/* Edit Course Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Course</DialogTitle>
+                  <DialogDescription>
+                    Update course details below
+                  </DialogDescription>
+                </DialogHeader>
+                {editingCourse && (
+                  <form onSubmit={handleUpdateCourse} className="space-y-4">
+                    <div>
+                      <Label htmlFor="editCourseTitle">Course Title</Label>
+                      <Input
+                        id="editCourseTitle"
+                        value={editingCourse.title}
+                        onChange={(e) => setEditingCourse({...editingCourse, title: e.target.value})}
+                        placeholder="e.g., React Development"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="editCoursePrice">Price (₹)</Label>
+                      <Input
+                        id="editCoursePrice"
+                        type="number"
+                        value={editingCourse.price}
+                        onChange={(e) => setEditingCourse({...editingCourse, price: parseInt(e.target.value) || 0})}
+                        placeholder="4999"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="editCourseDescription">Description</Label>
+                      <Input
+                        id="editCourseDescription"
+                        value={editingCourse.description}
+                        onChange={(e) => setEditingCourse({...editingCourse, description: e.target.value})}
+                        placeholder="Course description"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="editCourseDuration">Duration</Label>
+                      <Input
+                        id="editCourseDuration"
+                        value={editingCourse.duration}
+                        onChange={(e) => setEditingCourse({...editingCourse, duration: e.target.value})}
+                        placeholder="8 weeks"
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit">
+                        Update Course
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Course Confirmation Dialog */}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Delete Course</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete this course? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={confirmDeleteCourse}>
+                    Delete Course
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Faculty Tab */}

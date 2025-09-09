@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,29 +16,24 @@ import {
   Reply, 
   Clock,
   User,
-  Filter,
-  Search
+
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export const FeedbackManagement: React.FC = () => {
   const [allFeedback, setAllFeedback] = useState<CourseFeedback[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<CourseFeedback[]>([]);
-  const [selectedFeedback, setSelectedFeedback] = useState<CourseFeedback | null>(null);
+  const [_selectedFeedback, _setSelectedFeedback] = useState<CourseFeedback | null>(null);
   const [adminResponse, setAdminResponse] = useState('');
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadFeedback();
-  }, []);
-
-  const loadFeedback = () => {
+  const loadFeedback = useCallback(() => {
     setLoading(true);
     try {
       const all = FeedbackService.getAllFeedback();
       const pending = FeedbackService.getPendingFeedback();
-      
+
       setAllFeedback(all);
       setPendingFeedback(pending);
     } catch (error) {
@@ -51,7 +46,11 @@ export const FeedbackManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadFeedback();
+  }, [loadFeedback]);
 
   const handleApproveFeedback = (feedbackId: string) => {
     const success = FeedbackService.approveFeedback(feedbackId);
@@ -142,7 +141,17 @@ export const FeedbackManagement: React.FC = () => {
                 {feedback.isApproved ? 'Approved' : 'Pending'}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(feedback.createdAt), { addSuffix: true })}
+                {(() => {
+                  try {
+                    const createdAt = new Date(feedback.createdAt);
+                    if (isNaN(createdAt.getTime())) {
+                      return 'Unknown time';
+                    }
+                    return formatDistanceToNow(createdAt, { addSuffix: true });
+                  } catch {
+                    return 'Unknown time';
+                  }
+                })()}
               </span>
             </div>
           </div>
@@ -156,7 +165,17 @@ export const FeedbackManagement: React.FC = () => {
                   Admin Response
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(feedback.adminResponseDate!), { addSuffix: true })}
+                  {(() => {
+                    try {
+                      const responseDate = new Date(feedback.adminResponseDate || new Date());
+                      if (isNaN(responseDate.getTime())) {
+                        return 'Unknown time';
+                      }
+                      return formatDistanceToNow(responseDate, { addSuffix: true });
+                    } catch {
+                      return 'Unknown time';
+                    }
+                  })()}
                 </span>
               </div>
               <p className="text-sm text-blue-800">{feedback.adminResponse}</p>

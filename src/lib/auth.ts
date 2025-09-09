@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { User, getUserData, saveUserData, STORAGE_KEYS } from './mockData';
+import { validateEmail, validatePasswordStrength, generateSecureToken, validateToken, secureStorage, RateLimiter } from './security';
 
 export interface LoginCredentials {
   email: string;
@@ -19,9 +20,24 @@ export class AuthService {
 
   static login(credentials: LoginCredentials): { user: User; token: string } | null {
     const { email, password } = credentials;
-    
+
+    console.log('Login attempt:', { email, passwordLength: password.length });
+
+    // Rate limiting - more lenient for demo
+    if (!RateLimiter.isAllowed(email, 10, 15 * 60 * 1000)) {
+      console.log('Rate limit exceeded for:', email);
+      throw new Error('Too many login attempts. Please try again later.');
+    }
+
+    // Input validation
+    if (!validateEmail(email)) {
+      console.log('Invalid email format:', email);
+      throw new Error('Invalid email format');
+    }
+
     // Admin login
     if (email === this.ADMIN_EMAIL && password === this.ADMIN_PASSWORD) {
+      console.log('Admin login successful');
       const adminUser: User = {
         id: 'admin',
         email: this.ADMIN_EMAIL,
@@ -29,28 +45,48 @@ export class AuthService {
         role: 'admin',
         createdAt: new Date().toISOString()
       };
-      
-      const token = this.generateToken(adminUser);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ user: adminUser, token }));
+
+      const token = generateSecureToken({ userId: adminUser.id, role: adminUser.role });
+      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, { user: adminUser, token });
       return { user: adminUser, token };
     }
-    
+
     // Student login - check if user exists
     const users = getUserData();
+    console.log('Available users:', users.map(u => ({ email: u.email, role: u.role })));
     const user = users.find(u => u.email === email);
-    
-    if (user && this.validatePassword(password)) {
-      const token = this.generateToken(user);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ user, token }));
-      return { user, token };
+
+    if (user) {
+      console.log('User found:', { email: user.email, role: user.role });
+      // Check if password matches (for demo, we store plain text passwords)
+      if (this.validateStudentPassword(password, user.password)) {
+        console.log('Student login successful');
+        const token = generateSecureToken({ userId: user.id, role: user.role });
+        secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, { user, token });
+        return { user, token };
+      } else {
+        console.log('Password validation failed. Expected:', user.password, 'Got:', password);
+      }
+    } else {
+      console.log('User not found for email:', email);
     }
-    
+
     return null;
   }
 
   static signup(data: SignupData): { user: User; token: string } | null {
     try {
       const users = getUserData();
+
+      // Rate limiting
+      if (!RateLimiter.isAllowed(data.email, 3, 60 * 60 * 1000)) {
+        throw new Error('Too many signup attempts. Please try again later.');
+      }
+
+      // Input validation
+      if (!validateEmail(data.email)) {
+        throw new Error('Invalid email format');
+      }
 
       // Check if user already exists
       if (users.find(u => u.email === data.email)) {
@@ -62,8 +98,10 @@ export class AuthService {
         throw new Error('All fields are required');
       }
 
-      if (data.password.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
+      // Enhanced password validation
+      const passwordValidation = validatePasswordStrength(data.password);
+      if (!passwordValidation.isValid) {
+        throw new Error(passwordValidation.errors[0]);
       }
 
       const newUser: User = {
@@ -78,9 +116,9 @@ export class AuthService {
       users.push(newUser);
       saveUserData(users);
 
-      const token = this.generateToken(newUser);
+      const token = generateSecureToken({ userId: newUser.id, role: newUser.role });
       const userData = { user: newUser, token };
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
+      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, userData);
       return userData;
     } catch (error) {
       console.error('Signup error:', error);
@@ -89,27 +127,37 @@ export class AuthService {
   }
 
   static logout(): void {
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    secureStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  }
+
+  // Debug method to reset rate limiting
+  static resetRateLimit(email?: string): void {
+    RateLimiter.reset(email);
   }
 
   static getCurrentUser(): { user: User; token: string } | null {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      const data = secureStorage.getItem<{ user: User; token: string }>(STORAGE_KEYS.CURRENT_USER);
       if (!data) return null;
 
-      const parsed = JSON.parse(data);
-
-      // Validate the structure of the parsed data
-      if (!parsed || typeof parsed !== 'object' || !parsed.user || !parsed.token) {
-        console.warn('Invalid user data structure, clearing localStorage');
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      // Validate token
+      if (!validateToken(data.token)) {
+        console.warn('Invalid or expired token, clearing storage');
+        secureStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
         return null;
       }
 
-      return parsed;
+      // Validate the structure of the data
+      if (!data.user || !data.token) {
+        console.warn('Invalid user data structure, clearing storage');
+        secureStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        return null;
+      }
+
+      return data;
     } catch (error) {
-      console.error('Error parsing user data:', error);
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      console.error('Error retrieving user data:', error);
+      secureStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       return null;
     }
   }
@@ -142,6 +190,14 @@ export class AuthService {
   private static validatePassword(password: string): boolean {
     // Simple validation - in real app, passwords would be hashed
     return password.length >= 1; // Accept any password for demo
+  }
+
+  private static validateStudentPassword(inputPassword: string, storedPassword?: string): boolean {
+    // For demo purposes, check against stored password or accept any password if none stored
+    if (!storedPassword) {
+      return inputPassword.length >= 1; // Fallback for users without stored passwords
+    }
+    return inputPassword === storedPassword;
   }
 }
 

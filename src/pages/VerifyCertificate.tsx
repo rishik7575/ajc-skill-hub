@@ -7,40 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { Search, Award, CheckCircle, X, ArrowLeft } from "lucide-react";
+import { getCertificateData, getCourseData } from "@/lib/mockData";
 
 const VerifyCertificate = () => {
   const [certificateId, setCertificateId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const { toast } = useToast();
-
-  // Mock certificate database
-  const certificates = {
-    "AJC2024-PBI-00142": {
-      studentName: "Anita Devi",
-      course: "Power BI Mastery",
-      grade: "Silver",
-      dateIssued: "2024-08-15",
-      score: "85%",
-      instructorName: "Dr. Amit Sharma"
-    },
-    "AJC2024-FSD-00089": {
-      studentName: "Rahul Verma",
-      course: "Full Stack Development",
-      grade: "Gold",
-      dateIssued: "2024-08-20",
-      score: "92%",
-      instructorName: "Priya Singh"
-    },
-    "AJC2024-FLD-00056": {
-      studentName: "Sneha Patel",
-      course: "Flutter Development",
-      grade: "Participation",
-      dateIssued: "2024-08-10",
-      score: "68%",
-      instructorName: "Rohit Kumar"
-    }
-  };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,12 +24,20 @@ const VerifyCertificate = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const certificate = certificates[certificateId as keyof typeof certificates];
+      const allCertificates = getCertificateData();
+      const allCourses = getCourseData();
+      const certificate = allCertificates.find(c => c.uniqueId.toUpperCase() === certificateId.toUpperCase());
       
       if (certificate) {
+        const course = allCourses.find(c => c.id === certificate.courseId);
         setResult({
           valid: true,
-          ...certificate
+          studentName: certificate.studentName,
+          course: certificate.courseName,
+          grade: certificate.type,
+          dateIssued: certificate.issueDate,
+          instructorName: course?.faculty || 'N/A',
+          // Note: 'score' is not available in the main Certificate type.
         });
         toast({
           title: "Certificate Verified!",
@@ -72,7 +53,7 @@ const VerifyCertificate = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Verification Failed",
         description: "An error occurred while verifying the certificate.",

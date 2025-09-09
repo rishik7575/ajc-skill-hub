@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,20 +7,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  Award, 
-  Mail, 
-  Phone,
-  Calendar,
-  BookOpen,
-  TrendingUp,
+import {
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Award,
+  Mail,
   User
 } from 'lucide-react';
-import { getUserData, getCourseData } from '@/lib/mockData';
+import { getUserData, getCourseData, Course } from '@/lib/mockData';
 import { StudentDataService } from '@/lib/studentData';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -33,19 +29,63 @@ interface StudentData {
   totalProgress: number;
   certificatesEarned: number;
   lastActivity: string;
+  status: string;
 }
 
 export const StudentManagement: React.FC = () => {
   const [students, setStudents] = useState<StudentData[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<StudentData[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const loadStudents = useCallback(() => {
+    setLoading(true);
+    try {
+      const users = getUserData();
+
+      const studentUsers = users.filter(user => user.role === 'student');
+
+      const studentsData = studentUsers.map(user => {
+        const progress = StudentDataService.getStudentProgress(user.id);
+        const totalProgress = progress.length > 0
+          ? progress.reduce((sum, p) => sum + p.progress, 0) / progress.length
+          : 0;
+
+        const certificatesEarned = progress.filter(p => p.certificate).length;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          enrolledCourses: user.enrolledCourses || [], // Use actual enrolled courses array
+          totalProgress: Math.round(totalProgress),
+          certificatesEarned,
+          joinDate: user.createdAt ?? new Date().toISOString().split('T')[0], // Use createdAt as joinDate with fallback
+          lastActivity: new Date().toISOString(), // Full ISO string for proper date parsing
+          status: totalProgress > 80 ? 'active' : totalProgress > 0 ? 'in-progress' : 'inactive'
+        };
+      });
+
+      setStudents(studentsData);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to load student data.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
+    // Also load course data for mapping IDs to titles
+    setCourses(getCourseData());
     loadStudents();
-  }, []);
+  }, [loadStudents]);
 
   useEffect(() => {
     // Filter students based on search term
@@ -56,46 +96,7 @@ export const StudentManagement: React.FC = () => {
     setFilteredStudents(filtered);
   }, [students, searchTerm]);
 
-  const loadStudents = () => {
-    setLoading(true);
-    try {
-      const users = getUserData();
-      const courses = getCourseData();
-      
-      const studentUsers = users.filter(user => user.role === 'student');
-      
-      const studentsData = studentUsers.map(user => {
-        const progress = StudentDataService.getStudentProgress(user.id);
-        const totalProgress = progress.length > 0 
-          ? progress.reduce((sum, p) => sum + p.progress, 0) / progress.length 
-          : 0;
-        
-        const certificatesEarned = progress.filter(p => p.certificate).length;
-        
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          enrolledCourses: user.enrolledCourses || [],
-          joinDate: user.createdAt,
-          totalProgress: Math.round(totalProgress),
-          certificatesEarned,
-          lastActivity: new Date().toISOString() // Mock data
-        };
-      });
 
-      setStudents(studentsData);
-    } catch (error) {
-      console.error('Error loading students:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load student data.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const exportStudentData = () => {
     // Mock export functionality
@@ -111,10 +112,10 @@ export const StudentManagement: React.FC = () => {
     return 'text-red-600';
   };
 
-  const getProgressBadgeVariant = (progress: number) => {
-    if (progress >= 80) return 'default';
-    if (progress >= 60) return 'secondary';
-    return 'destructive';
+
+
+  const getCourseTitleById = (courseId: string): string => {
+    return courses.find(c => c.id === courseId)?.title || courseId;
   };
 
   if (loading) {
@@ -216,7 +217,17 @@ export const StudentManagement: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(student.joinDate), { addSuffix: true })}
+                        {(() => {
+                          try {
+                            const joinDate = new Date(student.joinDate);
+                            if (isNaN(joinDate.getTime())) {
+                              return 'Unknown';
+                            }
+                            return formatDistanceToNow(joinDate, { addSuffix: true });
+                          } catch {
+                            return 'Unknown';
+                          }
+                        })()}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -270,7 +281,7 @@ export const StudentManagement: React.FC = () => {
                                   {selectedStudent.enrolledCourses.length > 0 ? (
                                     selectedStudent.enrolledCourses.map((courseId, index) => (
                                       <Badge key={index} variant="outline">
-                                        {courseId}
+                                        {getCourseTitleById(courseId)}
                                       </Badge>
                                     ))
                                   ) : (

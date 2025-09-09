@@ -55,7 +55,7 @@ const Contact = () => {
         subject: "",
         message: ""
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Failed to Send",
         description: "There was an error sending your message. Please try again.",

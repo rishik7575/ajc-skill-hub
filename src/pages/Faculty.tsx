@@ -4,6 +4,21 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Mail, Linkedin, Star, Users, BookOpen, Award } from "lucide-react";
 
+// Helper function to map course names to course IDs
+const getCourseIdFromName = (courseName: string): string => {
+  const courseMap: { [key: string]: string } = {
+    'Power BI & Data Analytics': 'powerbi',
+    'Power BI': 'powerbi',
+    'Full Stack Development': 'fullstack',
+    'Frontend Development': 'frontend',
+    'Backend Development': 'backend',
+    'Database Management': 'database',
+    'Flutter Development': 'flutter'
+  };
+
+  return courseMap[courseName] || courseName.toLowerCase().replace(/\s+/g, '-');
+};
+
 const Faculty = () => {
   const facultyMembers = [
     {
@@ -226,7 +241,7 @@ const Faculty = () => {
                       LinkedIn
                     </Button>
                   </div>
-                  <Link to={`/course/${faculty.course.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <Link to={`/course/${getCourseIdFromName(faculty.course)}`}>
                     <Button size="sm">
                       View Course
                     </Button>

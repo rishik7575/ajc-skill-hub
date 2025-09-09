@@ -9,25 +9,55 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./components/theme-provider";
 
 // Lazy load components for better performance
-const Landing = lazy(() => import("./pages/Landing"));
-const Login = lazy(() => import("./pages/Login"));
-const Signup = lazy(() => import("./pages/Signup"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
-const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
-const Faculty = lazy(() => import("./pages/Faculty"));
-const Contact = lazy(() => import("./pages/Contact"));
-const CourseDetails = lazy(() => import("./pages/CourseDetails"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const Landing = lazy(() =>
+  import("./pages/Landing").then(module => ({ default: module.default }))
+);
+const Login = lazy(() =>
+  import("./pages/Login").then(module => ({ default: module.default }))
+);
+const Signup = lazy(() =>
+  import("./pages/Signup").then(module => ({ default: module.default }))
+);
+const AdminDashboard = lazy(() =>
+  import("./pages/AdminDashboard").then(module => ({ default: module.default }))
+);
+const StudentDashboard = lazy(() =>
+  import("./pages/StudentDashboard").then(module => ({ default: module.default }))
+);
+const StudentCoursePage = lazy(() => import("./pages/StudentCoursePage"));
+const VerifyCertificate = lazy(() =>
+  import("./pages/VerifyCertificate").then(module => ({ default: module.default }))
+);
+const Faculty = lazy(() => import("./pages/Faculty").then(module => ({ default: module.default })));
+const Contact = lazy(() => import("./pages/Contact").then(module => ({ default: module.default })));
+const CourseDetails = lazy(() =>
+  import("./pages/CourseDetails").then(module => ({ default: module.default }))
+);
+const NotFound = lazy(() => import("./pages/NotFound").then(module => ({ default: module.default })));
 
-// Loading component
+// Optimized loading component with better performance
 const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
   </div>
 );
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <ThemeProvider defaultTheme="light" storageKey="ajc-ui-theme">
@@ -50,6 +80,11 @@ const App = () => (
                 <Route path="/student" element={
                   <ProtectedRoute>
                     <StudentDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/student/course/:courseId" element={
+                  <ProtectedRoute>
+                    <StudentCoursePage />
                   </ProtectedRoute>
                 } />
                 <Route path="/verify-certificate" element={<VerifyCertificate />} />

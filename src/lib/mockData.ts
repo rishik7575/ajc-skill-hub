@@ -5,6 +5,7 @@ export interface User {
   role: 'admin' | 'student';
   enrolledCourses?: string[];
   createdAt: string;
+  password?: string; // For demo purposes - in real app, this would be hashed
 }
 
 export interface Course {
@@ -238,7 +239,8 @@ export const mockUsers: User[] = [
     email: 'rishikmaduri@gmail.com',
     name: 'Rishik Maduri',
     role: 'admin',
-    createdAt: '2024-01-01'
+    createdAt: '2024-01-01',
+    password: 'Rishik@123'
   },
   {
     id: 'student1',
@@ -246,7 +248,44 @@ export const mockUsers: User[] = [
     name: 'Demo Student',
     role: 'student',
     enrolledCourses: ['fullstack', 'powerbi'],
-    createdAt: '2024-01-15'
+    createdAt: '2024-01-15',
+    password: 'password'
+  },
+  {
+    id: 'student2',
+    email: 'sarah.johnson@email.com',
+    name: 'Sarah Johnson',
+    role: 'student',
+    enrolledCourses: ['frontend', 'database'],
+    createdAt: '2024-02-01',
+    password: 'password'
+  },
+  {
+    id: 'student3',
+    email: 'mike.chen@email.com',
+    name: 'Mike Chen',
+    role: 'student',
+    enrolledCourses: ['backend', 'flutter'],
+    createdAt: '2024-02-10',
+    password: 'password'
+  },
+  {
+    id: 'student4',
+    email: 'priya.sharma@email.com',
+    name: 'Priya Sharma',
+    role: 'student',
+    enrolledCourses: ['fullstack'],
+    createdAt: '2024-02-20',
+    password: 'password'
+  },
+  {
+    id: 'student5',
+    email: 'alex.rodriguez@email.com',
+    name: 'Alex Rodriguez',
+    role: 'student',
+    enrolledCourses: ['powerbi', 'database'],
+    createdAt: '2024-03-01',
+    password: 'password'
   }
 ];
 
@@ -260,6 +299,46 @@ export const mockCertificates: Certificate[] = [
     type: 'Silver',
     issueDate: '2024-03-15',
     uniqueId: 'AJC2024-PBI-00142'
+  },
+  {
+    id: 'cert2',
+    userId: 'student2',
+    courseId: 'fullstack',
+    studentName: 'Sarah Johnson',
+    courseName: 'Full Stack Development',
+    type: 'Gold',
+    issueDate: '2024-03-20',
+    uniqueId: 'AJC2024-FSD-00089'
+  },
+  {
+    id: 'cert3',
+    userId: 'student3',
+    courseId: 'flutter',
+    studentName: 'Mike Chen',
+    courseName: 'Flutter Development',
+    type: 'Participation',
+    issueDate: '2024-03-25',
+    uniqueId: 'AJC2024-FLD-00056'
+  },
+  {
+    id: 'cert4',
+    userId: 'student4',
+    courseId: 'backend',
+    studentName: 'Priya Sharma',
+    courseName: 'Backend Development',
+    type: 'Silver',
+    issueDate: '2024-03-30',
+    uniqueId: 'AJC2024-BED-00123'
+  },
+  {
+    id: 'cert5',
+    userId: 'student5',
+    courseId: 'database',
+    studentName: 'Alex Rodriguez',
+    courseName: 'Database Management',
+    type: 'Gold',
+    issueDate: '2024-04-05',
+    uniqueId: 'AJC2024-DBM-00078'
   }
 ];
 
@@ -346,9 +425,16 @@ export const STORAGE_KEYS = {
   STUDENT_PROGRESS: 'ajc_student_progress',
   NOTIFICATIONS: 'ajc_notifications',
   ACTIVITIES: 'ajc_activities',
-  CURRENT_USER: 'ajc_current_user',
   COURSE_FEEDBACK: 'ajc_course_feedback',
-  COURSE_RATINGS: 'ajc_course_ratings'
+  COURSE_RATINGS: 'ajc_course_ratings',
+  CURRENT_USER: 'ajc_current_user',
+  MCQ_QUESTIONS: 'ajc_mcq_questions',
+  MCQ_ATTEMPTS: 'ajc_mcq_attempts',
+  MCQ_SESSIONS: 'ajc_mcq_sessions',
+  DAILY_TASKS: 'ajc_daily_tasks',
+  TASK_SUBMISSIONS: 'ajc_task_submissions',
+  PAYMENTS: 'ajc_payments',
+  LIVE_SESSIONS: 'ajc_live_sessions'
 };
 
 // Initialize mock data in localStorage if not exists

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,50 +8,49 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import {
   BookOpen,
-  Play,
   Download,
-  CheckCircle,
   Clock,
   Trophy,
-  Bell,
   LogOut,
-  Star,
   Award,
-  TrendingUp,
   Video,
   FileText,
   Users,
-  Target
+  Target,
+  TrendingUp
 } from "lucide-react";
-import { ProgressIndicator, CircularProgress } from "@/components/ProgressIndicator";
+
 import { NotificationSystem } from "@/components/NotificationSystem";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthService } from "@/lib/auth";
 import { StudentDataService } from "@/lib/studentData";
-import { getCourseData, getCertificateData } from "@/lib/mockData";
+import { getCourseData, getCertificateData, Course, Notification, Activity, Certificate } from "@/lib/mockData";
+import { formatDistanceToNow } from "date-fns";
+
+// An enriched type for courses displayed on the dashboard
+interface EnrichedCourse extends Course {
+  progress: number;
+  completedLessons: number;
+  rank: number;
+  certificate: 'Gold' | 'Silver' | 'Participation' | null;
+  nextLive: string; // This is mock data
+}
 
 const StudentDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
 
-  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
-  const [userCertificates, setUserCertificates] = useState<any[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrichedCourse[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+  const [_userCertificates, _setUserCertificates] = useState<Certificate[]>([]);
 
-  useEffect(() => {
-    const currentUser = AuthService.getCurrentUser();
-    if (!currentUser) {
-      navigate("/login");
-      return;
-    }
 
-    // Load initial data
-    refreshDashboardData();
-  }, [navigate]);
+
+
 
 
   const handleLogout = () => {
@@ -78,7 +77,7 @@ const StudentDashboard = () => {
         title: "Enrollment Successful!",
         description: "You have been enrolled in the course.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Enrollment Failed",
         description: "There was an error enrolling in the course. Please try again.",
@@ -87,7 +86,7 @@ const StudentDashboard = () => {
     }
   };
 
-  const refreshDashboardData = async () => {
+  const refreshDashboardData = useCallback(async () => {
     const currentUser = AuthService.getCurrentUser();
     if (!currentUser) return;
 
@@ -111,7 +110,6 @@ const StudentDashboard = () => {
           progress: progress?.progress || 0,
           completedLessons: progress?.completedLessons || 0,
           rank: progress?.rank || 1,
-          totalStudents: course.students,
           certificate: progress?.certificate || null,
           nextLive: "Tomorrow 3:00 PM" // Mock data
         };
@@ -123,7 +121,7 @@ const StudentDashboard = () => {
       ));
       setNotifications(studentNotifications);
       setRecentActivities(studentActivities);
-      setUserCertificates(allCertificates.filter(cert => cert.userId === userId));
+      _setUserCertificates(allCertificates.filter(cert => cert.userId === userId));
     } catch (error) {
       console.error('Error refreshing dashboard data:', error);
       toast({
@@ -132,7 +130,18 @@ const StudentDashboard = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    // Load initial data
+    refreshDashboardData();
+  }, [navigate, refreshDashboardData]);
 
   const markAllNotificationsRead = () => {
     notifications.forEach(notification => {
@@ -146,8 +155,6 @@ const StudentDashboard = () => {
       description: "All notifications have been marked as read.",
     });
   };
-
-  const unreadNotifications = notifications.filter(n => !n.read).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
@@ -272,7 +279,7 @@ const StudentDashboard = () => {
                         </CardDescription>
                       </div>
                       <div className="text-right">
-                        <Badge variant="outline">Rank #{course.rank}/{course.totalStudents}</Badge>
+                        <Badge variant="outline">Rank #{course.rank}/{course.students}</Badge>
                         {course.certificate && (
                           <Badge className="ml-2 bg-gray-500">{course.certificate} Certificate</Badge>
                         )}
@@ -319,7 +326,9 @@ const StudentDashboard = () => {
                       </Card>
                     </div>
                     <div className="mt-4 flex justify-between items-center">
-                      <Button>Continue Learning</Button>
+                      <Link to={`/student/course/${course.id}`}>
+                        <Button>Continue Learning</Button>
+                      </Link>
                       <Button variant="outline">View Leaderboard</Button>
                     </div>
                   </CardContent>
@@ -347,7 +356,19 @@ const StudentDashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">{notification.time}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(() => {
+                          try {
+                            const createdAt = new Date(notification.createdAt);
+                            if (isNaN(createdAt.getTime())) {
+                              return 'Unknown time';
+                            }
+                            return formatDistanceToNow(createdAt, { addSuffix: true });
+                          } catch {
+                            return 'Unknown time';
+                          }
+                        })()}
+                      </p>
                       {!notification.read && <Badge variant="secondary" className="mt-1">New</Badge>}
                     </div>
                   </CardContent>
@@ -455,7 +476,7 @@ const StudentDashboard = () => {
                             <Trophy className={`h-4 w-4 ${course.rank <= 5 ? 'text-yellow-500' : 'text-muted-foreground'}`} />
                             <span className="font-bold">#{course.rank}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground">of {course.totalStudents}</p>
+                          <p className="text-xs text-muted-foreground">of {course.students}</p>
                         </div>
                       </div>
                     ))}
