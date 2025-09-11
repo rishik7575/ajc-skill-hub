@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { User, getUserData, saveUserData, STORAGE_KEYS } from './mockData';
-import { validateEmail, validatePasswordStrength, generateSecureToken, validateToken, secureStorage, RateLimiter } from './security';
+import { User, STORAGE_KEYS } from './mockData';
+import { secureStorage, RateLimiter, validateToken } from './security';
 
 export interface LoginCredentials {
   email: string;
@@ -15,131 +15,36 @@ export interface SignupData {
 
 // Mock authentication service
 export class AuthService {
-  private static readonly ADMIN_EMAIL = 'rishikmaduri@gmail.com';
-  private static readonly ADMIN_PASSWORD = 'Rishik@123';
 
-  static login(credentials: LoginCredentials): { user: User; token: string } | null {
-    const { email, password } = credentials;
-
-    console.log('Login attempt:', { email, passwordLength: password.length });
-
-    // Rate limiting - more lenient for demo
-    if (!RateLimiter.isAllowed(email, 10, 15 * 60 * 1000)) {
-      console.log('Rate limit exceeded for:', email);
-      throw new Error('Too many login attempts. Please try again later.');
+  static async login(credentials: LoginCredentials): Promise<{ user: User; token: string } | null> {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Login failed');
+      // Save user and token to local storage
+      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, data);
+      return data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
-
-    // Input validation
-    if (!validateEmail(email)) {
-      console.log('Invalid email format:', email);
-      throw new Error('Invalid email format');
-    }
-
-    // Admin login
-    if (email === this.ADMIN_EMAIL && password === this.ADMIN_PASSWORD) {
-      console.log('Admin login successful');
-      const adminUser: User = {
-        id: 'admin',
-        email: this.ADMIN_EMAIL,
-        name: 'Rishik Maduri',
-        role: 'admin',
-        createdAt: new Date().toISOString()
-      };
-
-      const token = generateSecureToken({ userId: adminUser.id, role: adminUser.role });
-      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, { user: adminUser, token });
-      return { user: adminUser, token };
-    }
-
-    // Check faculty credentials
-    const facultyData = localStorage.getItem(STORAGE_KEYS.FACULTY);
-    const faculty = facultyData ? JSON.parse(facultyData) : [];
-    const facultyUser = faculty.find((f: any) => f.email === email && f.password === password);
-    
-    if (facultyUser) {
-      console.log('Faculty login successful');
-      const facultyUserData: User = {
-        id: facultyUser.id,
-        email: facultyUser.email,
-        name: facultyUser.name,
-        role: 'faculty',
-        assignedCourses: facultyUser.assignedCourses,
-        createdAt: new Date().toISOString()
-      };
-      const token = generateSecureToken({ userId: facultyUserData.id, role: facultyUserData.role });
-      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, { user: facultyUserData, token });
-      return { user: facultyUserData, token };
-    }
-
-    // Student login - check if user exists
-    const users = getUserData();
-    console.log('Available users:', users.map(u => ({ email: u.email, role: u.role })));
-    const user = users.find(u => u.email === email);
-
-    if (user) {
-      console.log('User found:', { email: user.email, role: user.role });
-      // Check if password matches (for demo, we store plain text passwords)
-      if (this.validateStudentPassword(password, user.password)) {
-        console.log('Student login successful');
-        const token = generateSecureToken({ userId: user.id, role: user.role });
-        secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, { user, token });
-        return { user, token };
-      } else {
-        console.log('Password validation failed. Expected:', user.password, 'Got:', password);
-      }
-    } else {
-      console.log('User not found for email:', email);
-    }
-
-    return null;
   }
 
-  static signup(data: SignupData): { user: User; token: string } | null {
+  static async signup(data: SignupData): Promise<{ user: User; token: string } | null> {
     try {
-      const users = getUserData();
-
-      // Rate limiting
-      if (!RateLimiter.isAllowed(data.email, 3, 60 * 60 * 1000)) {
-        throw new Error('Too many signup attempts. Please try again later.');
-      }
-
-      // Input validation
-      if (!validateEmail(data.email)) {
-        throw new Error('Invalid email format');
-      }
-
-      // Check if user already exists
-      if (users.find(u => u.email === data.email)) {
-        throw new Error('An account with this email already exists');
-      }
-
-      // Validate input data
-      if (!data.email || !data.name || !data.password) {
-        throw new Error('All fields are required');
-      }
-
-      // Enhanced password validation
-      const passwordValidation = validatePasswordStrength(data.password);
-      if (!passwordValidation.isValid) {
-        throw new Error(passwordValidation.errors[0]);
-      }
-
-      const newUser: User = {
-        id: `student_${Date.now()}`,
-        email: data.email,
-        name: data.name,
-        role: 'student',
-        enrolledCourses: [],
-        createdAt: new Date().toISOString()
-      };
-
-      users.push(newUser);
-      saveUserData(users);
-
-      const token = generateSecureToken({ userId: newUser.id, role: newUser.role });
-      const userData = { user: newUser, token };
-      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, userData);
-      return userData;
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || 'Signup failed');
+      secureStorage.setItem(STORAGE_KEYS.CURRENT_USER, resData);
+      return resData;
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -212,23 +117,6 @@ export class AuthService {
     }
   }
 
-  private static generateToken(user: User): string {
-    // Simple mock token - in real app, this would be a JWT
-    return btoa(`${user.id}:${user.email}:${Date.now()}`);
-  }
-
-  private static validatePassword(password: string): boolean {
-    // Simple validation - in real app, passwords would be hashed
-    return password.length >= 1; // Accept any password for demo
-  }
-
-  private static validateStudentPassword(inputPassword: string, storedPassword?: string): boolean {
-    // For demo purposes, check against stored password or accept any password if none stored
-    if (!storedPassword) {
-      return inputPassword.length >= 1; // Fallback for users without stored passwords
-    }
-    return inputPassword === storedPassword;
-  }
 }
 
 // Auth context hook with proper state management
@@ -258,7 +146,7 @@ export const useAuth = () => {
   const login = useCallback(async (credentials: LoginCredentials) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     try {
-      const result = AuthService.login(credentials);
+      const result = await AuthService.login(credentials);
       if (result && result.user && result.token) {
         setAuthState({
           user: result.user,
@@ -295,7 +183,7 @@ export const useAuth = () => {
   const signup = useCallback(async (data: SignupData) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     try {
-      const result = AuthService.signup(data);
+      const result = await AuthService.signup(data);
       if (result && result.user && result.token) {
         setAuthState({
           user: result.user,

@@ -183,54 +183,21 @@ const Login = () => {
               </Button>
             </form>
             
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Don't have an account?{" "}
-                <Link to="/signup" className="text-primary hover:underline">
-                  Sign up here
-                </Link>
-              </p>
-            </div>
+                <div className="mt-6 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Link to="/signup" className="text-primary hover:underline">
+                      Sign up here
+                    </Link>
+                  </p>
+                  <p className="text-sm">
+                    <Link to="/forgot-password" className="text-primary hover:underline">
+                      Forgot Password?
+                    </Link>
+                  </p>
+                </div>
 
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground text-center">
-                <strong>Demo Credentials:</strong><br />
-                Admin: rishikmaduri@gmail.com / Rishik@123<br />
-                Student: student@demo.com / password
-              </p>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEmail('rishikmaduri@gmail.com');
-                    setPassword('Rishik@123');
-                  }}
-                  className="flex-1"
-                >
-                  Fill Admin
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEmail('student@demo.com');
-                    setPassword('password');
-                  }}
-                  className="flex-1"
-                >
-                  Fill Student
-                </Button>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetRateLimit}
-                className="w-full mt-2"
-              >
-                Reset Rate Limit
-              </Button>
-            </div>
+            {/* Demo credentials section removed as requested */}
           </CardContent>
         </Card>
       </div>

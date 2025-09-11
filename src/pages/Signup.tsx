@@ -80,25 +80,21 @@ const Signup = () => {
         email: formData.email,
         password: formData.password
       });
-
       if (result) {
         toast({
           title: "Account Created!",
           description: "Welcome to AJC Internship Platform.",
         });
         navigate("/student", { replace: true });
-      } else {
-        toast({
-          title: "Signup Failed",
-          description: "An account with this email already exists.",
-          variant: "destructive",
-        });
       }
-
     } catch (error: any) {
+      let errorMsg = error?.message || "An error occurred. Please try again.";
+      if (errorMsg.includes("User already exists")) {
+        errorMsg = "An account with this email already exists. Please use a different email or sign in.";
+      }
       toast({
         title: "Registration Failed",
-        description: error.message || "An error occurred. Please try again.",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -113,7 +109,6 @@ const Signup = () => {
             Back to Home
           </Link>
         </div>
-        
         <Card className="shadow-xl">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -245,7 +240,6 @@ const Signup = () => {
                 )}
               </Button>
             </form>
-            
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}

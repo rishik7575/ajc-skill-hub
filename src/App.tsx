@@ -34,6 +34,7 @@ const Contact = lazy(() => import("./pages/Contact").then(module => ({ default: 
 const CourseDetails = lazy(() =>
   import("./pages/CourseDetails").then(module => ({ default: module.default }))
 );
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword").then(module => ({ default: module.default })));
 const NotFound = lazy(() => import("./pages/NotFound").then(module => ({ default: module.default })));
 
 // Optimized loading component with better performance
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/course/:courseId" element={<CourseDetails />} />
                 <Route path="/courses" element={<Landing />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -1,73 +1,139 @@
-# Welcome to your Lovable project
+# AJC Skill Hub
 
-## Project info
+A professional skill development platform with industry-focused internship programs. This repository contains the React (Vite + TypeScript) frontend and an Express + MongoDB API.
 
-**URL**: https://lovable.dev/projects/2c7ab8f5-faa3-447f-a514-583b075c5f5a
+## Monorepo Structure
 
-## How can I edit this code?
+- **/src**: React app (Vite + TS + Tailwind + shadcn/ui)
+- **/api**: Express API (auth + password reset)
+- **/server**: Legacy/alternative Express API (auth only)
+- **/public**: Static assets
+- **/image**: Project images
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: Vite, React 18, TypeScript, Tailwind CSS, shadcn/ui, Radix UI, React Router, TanStack Query
+- **Backend**: Node.js, Express, Mongoose, JSON Web Tokens, bcryptjs, CORS
+- **Tooling**: ESLint, TypeScript, PostCSS, Vite Bundle Analyzer
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2c7ab8f5-faa3-447f-a514-583b075c5f5a) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 18+ and npm
+- MongoDB connection URI
 
-**Use your preferred IDE**
+## Environment Variables
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Frontend uses Vite `VITE_*` variables. Dev and prod templates are provided:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- `/.env.development` (already present)
+- `/.env.production` (template)
 
-Follow these steps:
+Key frontend vars:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **VITE_API_URL**: Base URL for the API (default dev: `http://localhost:3001`)
+- **VITE_WEBSITE_URL**: Public URL of the site (optional for local dev)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Backend (`/api/.env`):
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+PORT=3001
+MONGO_URI=mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority
+JWT_SECRET=replace-with-a-strong-secret
 ```
 
-**Edit a file directly in GitHub**
+Note: The legacy `/server` also reads `PORT` and `MONGO_URI`. Prefer `/api` unless you know you need `/server`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Quick Start (Development)
 
-**Use GitHub Codespaces**
+1. Install frontend dependencies
+   ```sh
+   npm install
+   ```
+2. Install API dependencies
+   ```sh
+   cd api
+   npm install
+   ```
+3. Configure backend env
+   - Create `api/.env` with `PORT`, `MONGO_URI`, and `JWT_SECRET` (see above)
+4. Start the API (port 3001)
+   ```sh
+   npm start --prefix api
+   ```
+5. Start the frontend (Vite default port 5173)
+   ```sh
+   npm run dev
+   ```
+6. Open the app
+   - Frontend: http://localhost:5173
+   - API: http://localhost:3001
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+If you need to use the legacy server instead of `/api`:
+```sh
+npm start --prefix server
+```
+(Default port is `5000` unless `PORT` is set.)
 
-## What technologies are used for this project?
+## Available Scripts (root)
 
-This project is built with:
+- **dev**: Run Vite dev server
+- **build**: Type-check then build for production
+- **build:dev**: Build in development mode
+- **build:prod**: Full prod build
+- **preview**: Preview local build
+- **preview:prod**: Build then preview
+- **lint**: Run ESLint
+- **lint:fix**: ESLint with auto-fix
+- **type-check**: TypeScript no-emit type checking
+- **analyze**: Build and open bundle analyzer
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+API scripts:
+- `/api`: **start** — runs Express server
+- `/server` (legacy): **start** — runs Express server
 
-## How can I deploy this project?
+## API Overview (current routes)
 
-Simply open [Lovable](https://lovable.dev/projects/2c7ab8f5-faa3-447f-a514-583b075c5f5a) and click on Share -> Publish.
+- **Auth** (`/api/auth`)
+  - `POST /signup` — email, password, role
+  - `POST /login` — email, password → returns JWT and user info
+- **Password** (`/api/password`) — only in `/api`
+  - `POST /request-reset` — email → issues a 6-digit code (demo returns code in response)
+  - `POST /reset` — email, code, newPassword
 
-## Can I connect a custom domain to my Lovable project?
+## Building & Previewing
 
-Yes, you can!
+- Production build
+  ```sh
+  npm run build
+  ```
+- Preview the built app locally
+  ```sh
+  npm run preview
+  ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Ensure frontend `VITE_API_URL` points to your deployed API for production.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Project Configuration Highlights
+
+- Base URLs (dev defaults):
+  - **API**: `http://localhost:3001`
+  - **Frontend**: `http://localhost:5173`
+- Many app-level settings live in `src/lib/config.ts`
+
+## Troubleshooting
+
+- **MongoDB connection errors**: Verify `MONGO_URI` and network access to your cluster.
+- **JWT errors**: Ensure `JWT_SECRET` is set and consistent.
+- **CORS issues**: Confirm frontend is pointing to the correct `VITE_API_URL` and that the API `cors()` is enabled (it is by default).
+- **Port mismatch**: The frontend expects API at `3001` in development. Set `PORT=3001` in `api/.env`.
+- **Vite port**: If `5173` is busy, Vite will offer another port; update any tooling or links if needed.
+
+## Contributing
+
+1. Fork and create a feature branch
+2. Run `npm run lint` and `npm run type-check`
+3. Open a PR with context and screenshots where applicable
+
+---
+
+Note: A repository metadata file `.zencoder/rules/repo.md` is not present. If you’d like, I can generate it to improve future automation and guidance.
